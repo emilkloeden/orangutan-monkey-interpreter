@@ -1,0 +1,14 @@
+let while = use("./loops.🐵");
+
+let includes = fn(arr, needle) {
+    let i = 0
+    let found = false
+    loops.while(fn() {i < len(arr) && !found}, fn() {
+        if (arr[i] == needle) {
+            found = true
+        }
+        i = i + 1
+    })
+    return found
+}
+

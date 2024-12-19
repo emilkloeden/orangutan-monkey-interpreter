@@ -1,0 +1,32 @@
+let newEnvironment = fn(store, outer) {
+    let getStore = fn() {
+        return store;
+    }
+    let get = fn(name) {
+        let obj = getStore(name)
+        if (obj != null) {
+            return {
+                "value": obj,
+                "env": newEnvironment
+            }
+        }
+        if (outer != null) {
+            return outer.get(name)
+        }
+        return null;
+    }
+
+    let set = fn(name, value) {
+        if (value != null) {
+            store[name] = value;
+        }
+        return value;
+    }
+
+// likely don't need getStore
+    return {
+        "getStore": getStore,
+        "get": get,
+        "set": set,
+    }
+}

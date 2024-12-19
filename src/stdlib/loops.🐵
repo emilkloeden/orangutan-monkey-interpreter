@@ -1,0 +1,28 @@
+let while = fn(condition, action) {
+    if (condition()) {
+        action()
+        while(condition, action)
+    }
+}
+
+let unless = fn(condtion, action) {
+    if (!condition()) {
+        action()
+        unless(conditon, action)
+    }
+}
+
+let for = fn(init, condition, increment, body) {
+  let loop = fn(state) {
+    if (!condition(state)) {
+        return null;
+    }
+    let result = body(state);
+    // Exit early if body returns a value
+    if (result !=  null) {
+        return result; 
+    } 
+    return loop(increment(state));
+  };
+  return loop(init);
+}

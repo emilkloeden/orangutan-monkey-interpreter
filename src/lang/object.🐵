@@ -1,0 +1,68 @@
+let Error = fn(message) {
+    let toString = fn() {
+        "Error: " + message
+    }
+
+    return {
+        "_type": "OBJECT.ERROR",
+        "toString": toString
+    }
+}
+
+let ReturnValue = fn(value) {
+    let toString = fn() {
+        if (value == null) {
+            "null"
+        } else {
+            value.toString()
+        }
+    }
+
+    return {
+        "_type": "OBJECT.RETURNVALUE",
+        "toString": toString
+    }
+}
+
+let Null = fn() {
+    let toString = fn() {
+        "null"
+    }
+
+    let value = null;
+    return {
+        "_type": "OBJECT.NULL",
+        "value": value,
+        "toString": toString
+    }
+}
+
+let Integer = fn(value) {
+    let _value = int(value)
+    let toString = fn() {
+        str(value)
+    }
+
+    let hashKey = fn() {
+        HashKey("OBJECT.INTEGER", str(value))
+    }
+
+    return {
+        "_type": "OBJECT.INTEGER",
+        "value": _value,
+        "toString": toString,
+        "hashKey": hashKey
+    }
+}
+
+let HashKey = fn(_type, value) {
+    let toString = fn() {
+        _type + ":" + value
+    }
+
+    // TODO: check if we should return _type or "OBJECT.HASHKEY"
+    return {
+        "_type": _type,
+        "toString": toString
+    }
+}

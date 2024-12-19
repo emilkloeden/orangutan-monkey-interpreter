@@ -1,0 +1,255 @@
+let loops = use("../stdlib/loops.🐵")
+let token = use("token.🐵");
+let lexer = use("lexer.🐵");
+let ast = use("ast.🐵");
+
+let while = loops.while;
+let TokenType = token.TokenType;
+let newLexer = lexer.newLexer
+
+let Precedence = {
+    "LOWEST": 0,
+    "OR": 2,
+    "AND": 3,
+    "ASSIGN": 4,
+    "EQUALS": 5,
+    "LESSGREATER": 6,
+    "SUM": 7,
+    "PRODUCT": 8,
+    "MODULO": 9,
+    "PREFIX": 10,
+    "CALL": 11,
+    "INDEX": 12,
+}
+
+let precedences = {
+    TokenType["EQ"]: Precedence["EQUALS"],
+    TokenType["NOT_EQ"]: Precedence["EQUALS"],
+    TokenType["LT"]: Precedence["LESSGREATER"],
+    TokenType["LTE"]: Precedence["LESSGREATER"],
+    TokenType["GT"]: Precedence["LESSGREATER"],
+    TokenType["GTE"]: Precedence["LESSGREATER"],
+    TokenType["PLUS"]: Precedence["SUM"],
+    TokenType["MINUS"]: Precedence["SUM"],
+    TokenType["SLASH"]: Precedence["PRODUCT"],
+    TokenType["ASTERISK"]: Precedence["PRODUCT"],
+    TokenType["MODULO"]: Precedence["MODULO"],
+    TokenType["AND"]: Precedence["AND"],
+    TokenType["OR"]: Precedence["OR"],
+    TokenType["LPAREN"]: Precedence["CALL"],
+    TokenType["LBRACKET"]: Precedence["INDEX"],
+    TokenType["PERIOD"]: Precedence["INDEX"],
+    TokenType["ASSIGN"]: Precedence["ASSIGN"],
+}
+
+let newParser = fn(l) {
+    let lexer = l;
+    let errors = [];
+    let currentToken = lexer.nextToken();
+    let peekToken = lexer.nextToken();
+
+    // TODO: Confirm placement is important and if this is the right spot for it
+    let prefixParseFns = fn () {
+        {
+            TokenType["IDENT"]: parseIdentifier,
+            TokenType["INT"]: parseIntegerLiteral,
+            TokenType["NUMBER"]: parseNumberLiteral,
+            TokenType["BANG"]: parsePrefixExpression,
+            TokenType["MINUS"]: parsePrefixExpression,
+            TokenType["TRUE"]: parseBoolean,
+            TokenType["FALSE"]: parseBoolean,
+            TokenType["LPAREN"]: parseGroupedExpression,
+            TokenType["IF"]: parseIfExpression,
+            TokenType["FUNCTION"]: parseFunctionLiteral,
+            TokenType["STRING"]: parseStringLiteral,
+            TokenType["NULL"]: parseNullLiteral,
+            TokenType["LBRACKET"]: parseArrayLiteral,
+            TokenType["LBRACE"]: parseHashLiteral,
+        }
+    }
+    
+    let infixParseFns = fn (){
+        {
+            TokenType["PLUS"]: parseInfixExpression,
+            TokenType["MINUS"]: parseInfixExpression,
+            TokenType["SLASH"]: parseInfixExpression,
+            TokenType["ASTERISK"]: parseInfixExpression,
+            TokenType["MODULO"]: parseInfixExpression,
+            TokenType["EQ"]: parseInfixExpression,
+            TokenType["NOT_EQ"]: parseInfixExpression,
+            TokenType["AND"]: parseInfixExpression,
+            TokenType["OR"]: parseInfixExpression,
+            TokenType["LT"]: parseInfixExpression,
+            TokenType["LTE"]: parseInfixExpression,
+            TokenType["GT"]: parseInfixExpression,
+            TokenType["GTE"]: parseInfixExpression,
+            TokenType["LPAREN"]: parseCallExpression,
+            TokenType["LBRACKET"]: parseIndexExpression,
+            TokenType["ASSIGN"]: parseAssignExpression,
+        }
+    }
+    
+    let nextToken = fn() {
+        currentToken = peekToken;
+        peekToken = lexer.nextToken()
+    }
+
+    let parseIntegerLiteral = fn() {
+        let lit = ast.newIntegerLiteral(currentToken)
+        lit["value"] = currentToken.literal
+        return lit
+    }
+
+    let parseProgram = fn() {
+        let program = ast.newProgram()
+        let statements = program.statements
+        while(fn(){currentToken.tokenType != "EOF"}, fn(){
+            let stmt = parseStatement()
+            if (stmt != null) {
+                statements = append(statements, stmt)
+            }
+            nextToken()
+        })
+        program["statements"] = statements
+        return program
+    }
+
+    let parseStatement = fn() {
+        // TODO: implement comment, let, return statement parsing
+        if (currentToken.tokenType == TokenType.COMMENT) {
+            return parseCommentStatement();
+        }
+        if (currentToken.tokenType == TokenType.LET) {
+            return parseLetStatement();
+        }
+        if (currentToken.tokenType == TokenType.RETURN) {
+            return parseReturnStatement();
+        }
+        return parseExpressionStatement()
+    }
+
+    let parseCommentStatement = fn() {
+        return ast.newComment(currentToken, currentToken.literal)
+    }
+
+    let parseLetStatement fn() {
+        let stmt = ast.newLetStatement(currentToken);
+        if (!expectPeek(TokenType.IDENT)) {
+            return null
+        }
+        stmt["name"] = ast.newIdentifier(currentToken, currentToken.literal)
+        if (!expectPeek(TokenType.ASSIGN)) {
+            return null
+        }
+        nextToken()
+        stmt["value"] = parseExpression(Precedence.LOWEST)
+
+        if (peekTokenIs(TokenType.SEMICOLON)) {
+            nextToken()
+        }
+        return stmt
+    }
+
+    let parseReturnStatement = fn() {
+        let stmt = ast.newReturnStatement(currentToken)
+        nextToken()
+        stmt["returnValue"] = parseExpression(Precedence.LOWEST)
+
+        if (peekTokenIs(TokenType.SEMICOLON)) {
+            nextToken()
+        }
+        return stmt
+    }
+
+    let parseExpressionStatement = fn() {
+        let stmt = ast.newExpressionStatement(currentToken);
+        stmt["expression"] = parseExpression(Precedence.LOWEST)
+
+        if (peekTokenIs(TokenType.SEMICOLON)) {
+            nextToken()
+        }
+        let exp = stmt.expression
+        return stmt
+    }
+    
+    let parseExpression = fn(precedence) {
+        let prefix = prefixParseFns()[TokenType[currentToken.tokenType]]
+        if (prefix == null) {
+            puts("No prefix function found for token:", currentToken)
+            noPrefixParseFnError(currentToken)
+            return null;
+        }
+
+        let leftExp = prefix()
+
+        while(fn(){!peekTokenIs(TokenType.SEMICOLON) && precedence < peekPrecedence()}, fn(){
+            let infix = infixParseFns()[TokenType[peekToken.tokenType]]
+            if (infix == null) {
+                return null;
+            }
+            nextToken()
+            leftExp = infix(leftExp)
+        })
+        return leftExp
+        
+    }
+
+    let noPrefixParseFnError = fn(token) {
+        errors = append(errors, "No prefixParse func for " + token.tokenType + " found." + token)
+    }
+   
+    let parsePrefixExpression = fn() {
+        let expression = ast.newPrefixExpression(currentToken, currentToken.literal);
+        nextToken()
+        expression["right"] = parseExpression(Precedence.PREFIX)
+        return expression
+    }
+
+    let parseInfixExpression = fn(left) {
+        let expression = ast.newInfixExpression(currentToken, currentToken.literal, left)
+        let precedence = currentPrecedence()
+        nextToken()
+        expression["right"] = parseExpression(precedence)
+        return expression
+    }
+
+    let peekPrecedence = fn() {
+        let p = precedences[TokenType[peekToken.tokenType]]
+        if (p != null) {
+            return p
+        } 
+        Precedence.LOWEST
+    }
+
+    let currentPrecedence = fn() {
+        let p = precedences[TokenType[currentToken.tokenType]]
+        if (p != null) {
+            return p
+        } 
+        Precedence.LOWEST
+    }
+
+    let expectPeek = fn(tokenType) {
+        if(peekTokenIs(tokenType)) {
+            nextToken()
+            return true
+        } else {
+            peekError(tokenType)
+            return false
+        }
+    }
+
+    let peekError = fn(tokenType) {
+        let msg = "Expected next token to be " + tokenType + ", got " + peekToken.tokenType + " instead.";
+        errors = append(errors, msg)
+    }
+
+    let peekTokenIs = fn(tokenType) {
+        peekToken.tokenType == tokenType
+    }
+
+    return {
+        "parseProgram": parseProgram
+    }
+
+}

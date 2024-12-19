@@ -1,0 +1,199 @@
+let newProgram = fn() {
+    let statements = []
+
+    let tokenLiteral = fn() {
+        if (len(statements) > 0) {
+            return statements[0].tokenLiteral()
+        }
+        return "";
+    }
+
+    let toString = fn() {
+        return join(map(statements, fn(s) {s.toString()}),"")
+    }
+
+    return {
+        "_type": "AST.PROGRAM",
+        "statements": statements,
+        "tokenLiteral": tokenLiteral,
+        "toString": toString
+    }
+}
+
+let newCommentStatement = fn(token, value) {
+    let toString = fn() {
+        return value
+    }
+
+    let tokenLiteral = fn() {
+        this.token.literal
+    }
+    return {
+        "_type": "AST.COMMENTSTATEMENT",
+        "toString": toString,
+        "tokenLiteral": tokenLiteral,
+        "value": value
+    }
+}
+
+let newLetStatementent = fn(token) {
+    let name = ""
+    let value = null
+    
+    let toString = fn() {
+        let out = tokenLiteral() + " " + name + " = "
+        if (value != null) {
+            out = out + value.toString()
+        }
+        out = out + ";"
+        return out
+    }
+
+    let tokenLiteral = fn() {
+        this.token.literal
+    }
+
+    return {
+        "_type": "AST.LETSTATEMENT",
+        "toString": toString,
+        "tokenLiteral": tokenLiteral,
+        "value": value,
+        "name": name
+    }
+}
+
+let newIdentifier = fn(token, value) {
+    let toString = fn() {
+        value
+    }
+
+    let tokenLiteral = fn() {
+        this.token.literal
+    }
+
+    return {
+        "_type": "AST.IDENTIFIER",
+        "toString": toString,
+        "tokenLiteral": tokenLiteral,
+        "value": value,
+    }
+}
+
+let newReturnStatement = fn(token) {
+    let returnValue = null
+    
+    let toString = fn() {
+        value
+    }
+
+    let tokenLiteral = fn() {
+        this.token.literal
+    }
+
+    return {
+        "_type": "AST.RETURNSTATEMENT",
+        "toString": toString,
+        "tokenLiteral": tokenLiteral,
+        "returnValue": returnValue,
+    }
+}
+
+let newExpressionStatement = fn(token) {
+    let expression = null;
+    let getExpression = fn() {
+        return expression
+    }
+    let toString = fn() {
+        if (getExpression() == null) {
+            ""
+        } else {
+            getExpression().toString()
+        }
+    }
+
+    let tokenLiteral = fn() {
+        this.token.literal
+    }
+    return {
+        "_type": "AST.EXPRESSIONSTATEMENT",
+        "token": token,
+        "getExpression": getExpression,
+        "expression": expression,
+        "tokenLiteral": tokenLiteral,
+        "toString": toString,
+    }
+}
+
+let newIntegerLiteral = fn(token) {
+    let value = null;
+    let toString = fn() {
+        if (value == null) {
+            ""
+        } else {
+            // TODO: confirm
+            str(value)
+        }
+    }
+
+    let tokenLiteral = fn() {
+        token.literal
+    }
+
+    let getValue = fn() {
+        int(value)
+    }
+
+    // TODO: confirm
+    return {
+        "_type": "AST.INTEGERLITERAL",
+        "value": getValue,
+        "toString": toString,
+        "tokenLiteral": tokenLiteral
+    }
+}
+
+let newPrefixExpression = fn(token, operator) {
+    let right = null;
+
+    let toString = fn() {
+        return "(" + operator + right.toString() + ")"
+    }
+
+    let tokenLiteral = fn() {
+        token.literal
+    }
+
+    // TODO: confirm
+    return {
+        "_type": "AST.PREFIXEXPRESSION",
+        "right": right,
+        "toString": toString,
+        "tokenLiteral": tokenLiteral
+    }
+}
+
+let newInfixExpression = fn(token, operator, left) {
+    let right = null;
+
+    let toString = fn() {
+        return "(" + left.toString() + operator + right.toString() + ")"
+    }
+
+    let tokenLiteral = fn() {
+        token.literal
+    }
+
+    // TODO: confirm
+    return {
+        "_type": "AST.INFIXEXPRESSION",
+        "left": left,
+        "right": right,
+        "operator": operator,
+        "toString": toString,
+        "tokenLiteral": tokenLiteral
+    }
+}
+
+let instanceOf = fn(node, type) {
+    return node._type == type;
+}

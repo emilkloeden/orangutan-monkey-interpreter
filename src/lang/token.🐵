@@ -1,0 +1,80 @@
+let arrays = use("../stdlib/arrays.🐵")
+
+let TokenType = {
+    "ILLEGAL": "ILLEGAL",
+    "EOF": "SlashZero",
+
+    "IDENT": "IDENT",
+    "INT": "INT",
+    "STRING": "STRING",
+    "COMMENT": "COMMENT",
+    
+    "ASSIGN": "=",
+    "PLUS": "+",
+    "MINUS": "-",
+    "BANG": "!",
+    "ASTERISK": "*",
+    "SLASH": "/",
+    "MODULO": "%",
+    "AND": "&&",
+    "OR": "||",
+
+    "LT": "<",
+    "LTE": "<=",
+    "GT": ">",
+    "GTE": ">=",
+
+    "EQ": "==",
+    "NOT_EQ": "!=",
+    
+
+    "COLON" : ":",
+    "COMMA" : ",",
+    "SEMICOLON" : ";",
+
+    "LPAREN" : "(",
+    "RPAREN" : ")",
+    "LBRACE" : "{",
+    "RBRACE" : "}",
+    "LBRACKET" : "[",
+    "RBRACKET" : "]",
+    "PERIOD" : ".",
+
+    "FUNCTION" : "FUNCTION",
+    "LET" : "LET",
+    "TRUE" : "TRUE",
+    "FALSE" : "FALSE",
+    "IF" : "IF",
+    "ELSE" : "ELSE",
+    "RETURN" : "RETURN",
+    "USE" : "USE",
+    "NULL" : "NULL",
+}
+
+let keywords = {
+  "fn": TokenType.FUNCTION,
+  "let": TokenType.LET,
+  "true": TokenType.TRUE,
+  "false": TokenType.FALSE,
+  "if": TokenType.IF,
+  "else": TokenType.ELSE,
+  "return": TokenType.RETURN,
+  "null": TokenType.NULL,
+}
+
+let lookupIdent = fn(ident) {
+    let keywordNames = keys(keywords)
+    puts("ident:", ident)
+    if (arrays.includes(keywordNames, ident)) {
+        keywords[ident]
+    } else {
+        TokenType.IDENT
+    }
+}
+
+let newToken = fn(tokenType, literal) {
+    return {
+        "tokenType": tokenType,
+        "literal": literal
+    }
+}

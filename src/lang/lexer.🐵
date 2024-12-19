@@ -1,0 +1,319 @@
+let arrays = use("../stdlib/arrays.🐵")
+let loops = use("../stdlib/loops.🐵")
+let token = use("token.🐵");
+
+let while = loops.while;
+let lookupIdent = token.lookupIdent;
+let newToken = token.newToken;
+
+let newLexer = fn(input) {
+    // We create an array of single-character strings because we 
+    // can't iterate over a string (at least now)
+    // this has got to be expensive
+    
+    input = split(input,"")
+    let inputLength = len(input)
+    let position = 0;
+    let readPosition = 0;
+    let ch = "";
+    
+    let readChar = fn() {
+        if (readPosition >= inputLength) {
+            ch = "SlashZero"
+        } else {
+            ch = input[readPosition]
+        }
+        position = readPosition;
+        readPosition = readPosition + 1
+    }
+
+    let peekChar = fn() {
+        if (readPosition >= inputLength) {
+            return "SlashZero"
+        }
+        return input[readPosition]
+    }
+
+    let getChar = fn() {
+        return ch
+    }
+
+    let skipWhitespace = fn() {
+        let whiteSpace = [""," ", "    ", "
+"]
+        let break = false;
+        while(fn() {!break}, fn() {
+            if (ch == whiteSpace[0] || ch == whiteSpace[1] || ch == whiteSpace[2] || ch == whiteSpace[3]) {
+                readChar();
+            } else {
+                break = true
+            }
+        })
+       
+    }
+
+    let nextToken = fn () {
+        skipWhitespace()
+        let tok = {}
+        if (getChar() == "+") {
+            return newTokenAndAdvance("PLUS", "+")
+        } 
+        if (getChar() == "-") {
+            return newTokenAndAdvance("MINUS", "-")
+        } 
+        if (getChar() == "*") {
+            return newTokenAndAdvance("ASTERISK", "*")
+        } 
+        // TODO: Handle comments
+        if (getChar() == "/") {
+            if (peekChar() == "/") {
+                readChar()
+                readChar()
+                return newToken("COMMENT", readLine())
+            }
+            return newTokenAndAdvance("SLASH", "/")
+        }
+        // TODO: Add boolean tokens
+        if (getChar() == "%") {
+            return newTokenAndAdvance("MODULO", "%")
+        }
+        if (getChar() == "!") {
+            if (peekChar() == "=") {
+                readChar()
+                readChar()
+                return newToken("NOT_EQ", "!=")
+            }
+            return newTokenAndAdvance("BANG", "!")
+        }
+        if (getChar() == "=")  {
+            if (peekChar() == "=") {
+                readChar()
+                readChar()
+                return newToken("EQUALS", "==")
+            }
+            return newTokenAndAdvance("ASSIGN", "=")
+        }
+        if (getChar() == "&")  {
+            if (peekChar() == "&") {
+                readChar()
+                readChar()
+                return newToken("AND", "&&")
+            }
+            return newTokenAndAdvance("ILLEGAL", getChar())
+        }
+        if (getChar() == "|")  {
+            if (peekChar() == "|") {
+                readChar()
+                readChar()
+                return newToken("OR", "||")
+            }
+            return newTokenAndAdvance("ILLEGAL", getChar())
+        }
+        if (getChar() == ">")  {
+            if (peekChar() == "=") {
+                readChar()
+                readChar()
+                return newToken("GTE", ">=")
+            }
+            return newTokenAndAdvance("GT", ">")
+        }
+        if (getChar() == "<")  {
+            if (peekChar() == "=") {
+                readChar()
+                readChar()
+                return newToken("LTE", "<=")
+            }
+            return newTokenAndAdvance("LT", "<")
+        }
+
+        if (getChar() == ":") {
+            return newTokenAndAdvance("SEMICOLON", ":")
+        } 
+        if (getChar() == "(") {
+            return newTokenAndAdvance("LPAREN", "(")
+        } 
+        if (getChar() == ")") {
+            return newTokenAndAdvance("RPAREN", ")")
+        } 
+        if (getChar() == ",") {
+            return newTokenAndAdvance("COMMA", ",")
+        } 
+        if (getChar() == "{") {
+            return newTokenAndAdvance("LBRACE", "{")
+        } 
+        if (getChar() == "}") {
+            return newTokenAndAdvance("RBRACE", "}")
+        } 
+        if (getChar() == "[") {
+            return newTokenAndAdvance("LBRACKET", "[")
+        } 
+        if (getChar() == "]") {
+            return newTokenAndAdvance("RBRACKET", "]")
+        } 
+        if (getChar() == ":") {
+            return newTokenAndAdvance("COLON", ":")
+        } 
+        if (getChar() == ".") {
+            return newTokenAndAdvance("PERIOD", ".")
+        }
+        if (getChar() == '"') {
+            let string = readString()
+            return newTokenAndAdvance("STRING", string);
+        }
+        if (isDigit(getChar())) {
+            let number = readNumber()
+            return newTokenAndAdvance("INT", number)
+        }
+        if (isLetter(getChar())) {
+            let ident = readIdentifier()
+            return newTokenAndAdvance(lookupIdent(ident), ident)
+        }
+        if (getChar() == "SlashZero") {
+            return newTokenAndAdvance("EOF", getChar())
+        }
+        return newTokenAndAdvance("ILLEGAL", getChar())
+    }
+
+
+    let getPosition = fn() {
+        position
+    }
+
+
+    let readLine = fn() {
+        let p = position + 1
+        let done = false
+        while(fn(){!done}, fn() {
+            readChar()
+            let char = getChar()
+            // NOTE: the orangutan interpreter also checks for 
+            // \r and \0 but I can't do that without escape character handling
+            if (char == "SlashZero" || char == "
+"){
+                done = false
+            }
+            let res = []
+            let i = p;
+            let end = getPosition();
+            while(fn(){i < end}, fn(){
+                res = append(res, input[i])
+                i = i + 1
+            })
+            
+            return join(res, "")
+        })
+    }
+
+    let readString = fn() {
+        let p = position + 1
+        let done = false
+        while(fn(){!done}, fn() {
+            readChar()
+            let char = getChar()
+            // NOTE: the orangutan interpreter also checks for 
+            // \0 but I can't do that without escape character handling
+            // TODO: Excitedly Orangutan needs 'strings' just for this use case
+            if (char == '"' || char == "SlashZero"){
+                done = false
+            }
+            let res = []
+            let i = p;
+            let end = getPosition();
+            while(fn(){i < end}, fn(){
+                res = append(res, input[i])
+                i = i + 1
+            })
+            
+            return join(res, "")
+        })
+    }
+
+    let readNumber = fn() {
+        let p = position;
+        let break = false;
+        while(fn(){!break}, fn(){
+            if(isDigit(getChar())) {
+                readChar()
+            } else {
+                break = true
+            }
+
+        })
+        
+        let res = []
+        let i = p;
+        let end = getPosition();
+        while(fn(){i < end}, fn(){
+            res = append(res, input[i])
+            i = i + 1
+        })
+        
+        return join(res, "")
+
+    }
+
+    let readIdentifier = fn() {
+        let p = position;
+        let done = false;
+        while(fn(){isLetter(getChar()) && !done}, fn(){
+            readChar()
+            if (getChar() == "SlashZero") {
+                let done = true
+            }
+
+        })
+        
+        let res = []
+        let i = p;
+        let end = getPosition();
+        while(fn(){i < end}, fn(){
+            res = append(res, input[i])
+            i = i + 1
+        })
+        
+        return join(res, "")
+
+    }
+
+    let newTokenAndAdvance = fn(tokenType, literal) {
+        let tok = newToken(tokenType, literal)
+        readChar()
+        return tok
+    }
+
+    // this.ch doesn't update, so we have a function. I'm doing closures wrong
+    return {
+        "readChar": readChar,
+        "ch": ch, 
+        "getChar": getChar,
+        "nextToken": nextToken
+    }
+    
+}
+
+let isLetter = fn(ch) {
+    let lowercase = "abcdefghijklmnopqrstuvwxyz"
+    let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    let all = lowercase + uppercase + "_"
+    return arrays.includes(split(all, ""), ch)
+}
+
+let isDigit = fn(ch) {
+    if (
+        ch == "0"
+        || ch == "1" 
+        || ch == "2" 
+        || ch == "3" 
+        || ch == "4" 
+        || ch == "5" 
+        || ch == "6" 
+        || ch == "7" 
+        || ch == "8" 
+        || ch == "9" 
+        ) {
+            true
+        } else {
+            false
+        }
+}
+
