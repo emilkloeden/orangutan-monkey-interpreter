@@ -14,8 +14,26 @@ let evaluate = fn(node, env) {
     if (instanceOf(node, "AST.EXPRESSIONSTATEMENT")) {
         return evaluate(node.expression, env)
     }
+    if (instanceOf(node, "AST.BLOCKSTATEMENT")) {
+        return evaluateBlockStatement(node, env)
+    }
+    if (instanceOf(node, "AST.RETURNSTATEMENT")) {
+        return evaluateReturnStatement(node, env)
+    }
+    if (instanceOf(node, "AST.LETSTATEMENT")) {
+        return evaluateLetStatement(node, env)
+    }
     if (instanceOf(node, "AST.INTEGERLITERAL")) {
         return object.Integer(node.value)
+    }
+    if (instanceOf(node, "AST.STRINGLITERAL")) {
+        return object.String(node.value)
+    }
+    if (instanceOf(node, "AST.NULLLITERAL")) {
+        return object.Null(node.value)
+    }
+    if (instanceOf(node, "AST.ARRAYLITERAL")) {
+        return evaluateArrayLiteral(node, env)
     }
     if (instanceOf(node, "AST.INFIXEXPRESSION")) {
         let left = evaluate(node.left, env);
@@ -85,6 +103,48 @@ let evaluateIntegerInfixExpression = fn(operator, left, right) {
   return newError(
     "unknown operator XXX: "+ left._type + operator + right._type
   );
+}
+
+let evaluateLetStatement = fn(node, env) {
+    let value = evaluate(node.value, env)
+    if (isError(value)) {
+        return value
+    }
+    env.set(node.name.value, value)
+    // TODO: This doesn't return in the original, so I think it falls through
+    // or just doesn't return, null seems correct
+    return null
+}
+
+let evaluateReturnStatement = fn(node, env) {
+    let value = evaluate(node.returnValue, env)
+    if (isError(value)) {
+        return value
+    }
+    return object.ReturnValue(value)
+}
+
+let evaluateBlockStatement = fn(node, env) {
+    let result = null
+    let i = 0
+    let done = false
+    while(fn(){i < len(node.statements && !done)}, fn(){
+        result = evaluate(node.statements[i], env)
+        if (result != null) {
+            if (instanceOf(result, "OBJECT.RETURNVALUE") || instanceOf(result, "OBJECT.ERROR")) {
+                return result
+            }
+        }
+    })
+    return result
+}
+
+let evaluateArrayLiteral = fn(node, env) {
+    let elements = evaluateExpressions(node.elements, env)
+    if (len(elements) == 1 && isError(elements[0]) {
+        return elements[0]
+    })
+    return object.Array()
 }
 
 let isError = fn(obj) {

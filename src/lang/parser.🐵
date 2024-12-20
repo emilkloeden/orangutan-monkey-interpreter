@@ -48,12 +48,10 @@ let newParser = fn(l) {
     let currentToken = lexer.nextToken();
     let peekToken = lexer.nextToken();
 
-    // TODO: Confirm placement is important and if this is the right spot for it
     let prefixParseFns = fn () {
         {
             TokenType["IDENT"]: parseIdentifier,
             TokenType["INT"]: parseIntegerLiteral,
-            TokenType["NUMBER"]: parseNumberLiteral,
             TokenType["BANG"]: parsePrefixExpression,
             TokenType["MINUS"]: parsePrefixExpression,
             TokenType["TRUE"]: parseBoolean,
@@ -94,10 +92,96 @@ let newParser = fn(l) {
         peekToken = lexer.nextToken()
     }
 
+    let parseBoolean = fn() {
+        return ast.newBoolean(currentToken, currentTokenIs(TokenType.TRUE))
+    }
+
+    let parseIdentifier = fn() {
+        return ast.newIdentifier(currentToken, currentToken.literal)
+    }
+
     let parseIntegerLiteral = fn() {
         let lit = ast.newIntegerLiteral(currentToken)
         lit["value"] = currentToken.literal
         return lit
+    }
+
+    let parseStringLiteral = fn() {
+        return ast.newStringLiteral(currentToken, currentToken.literal)
+    }
+
+    let parseNullLiteral = fn() {
+        return ast.newNullLiteral(currentToken, currentToken.literal)
+    }
+
+    let parseArrayLiteral = fn() {
+        let array = ast.newArrayLiteral(currentToken);
+        array["elements"] = parseExpressionList(TokenType.RBRACKET);
+        return array;
+    };
+
+    let parseHashLiteral = fn() {
+        let lit = ast.newHashLiteral(currentToken)
+
+        while(fn(){!peekTokenIs(TokenType.RBRACE)}, fn() {
+            nextToken()
+            let key = parseExpression(Precedence.LOWEST)
+
+            if (!expectPeek(TokenType.COLON)) {
+                return null
+            }
+            nextToken()
+            let value = parseExpression(Precedence.LOWEST)
+
+            if (lit["pairs"] == null) {
+                lit["pairs"] = {}
+            }
+            lit["pairs"][key] = value
+            if (!peekTokenIs(TokenType.RBRACE) && !expectPeek(TokenType.COMMA)) {
+                return null
+            }
+        })
+        if (!expectPeek(TokenType.RBRACE)) {
+            return null
+        }
+        return lit
+    }
+
+    let parseFunctionLiteral = fn() {
+        let lit = ast.newFunctionLiteral(currentToken)
+
+        if (!expectPeek(TokenType.LPAREN)) {
+            return null
+        }
+        lit["parameters"] = parseFunctionParameters()
+
+        if (!expectPeek(TokenType.LBRACE)) {
+            return null
+        }
+        lit["body"] = parseBlockStatement()
+        return lit
+    }
+
+    let parseFunctionParameters = fn() {
+        let identifiers = []
+        if (peekTokenIs(TokenType.RPAREN)) {
+            nextToken()
+            return identifiers;
+        }
+        nextToken()
+        let ident = ast.newIdentifier(currentToken, currentToken.literal)
+        identifiers = append(identifiers, ident)
+
+        while(fn() {peekTokenIs(TokenType.COMMA)}, fn() {
+            nextToken()
+            nextToken()
+            ident = ast.newIdentifier(currentToken, currentToken.literal)
+            identifiers = append(identifiers, ident)
+        })
+        if (!expectPeek(TokenType.RPAREN)) {
+            return null
+        }
+        return identifiers
     }
 
     let parseProgram = fn() {
@@ -161,6 +245,22 @@ let newParser = fn(l) {
         return stmt
     }
 
+    let parseBlockStatement = fn() {
+        let block = ast.newBlockStatement(currentToken)
+        let statements = []
+        nextToken()
+
+        while (fn(){!currentTokenIs(TokenType.RBRACE) && !currentTokenIs(TokenType.EOF)}, fn() {
+            let stmt = parseStatement()
+            if (stmt != null) {
+                statements = append(statements, stmt)
+            }
+            nextToken()
+        })
+        block["statements"] = statements
+        return block
+    }
+
     let parseExpressionStatement = fn() {
         let stmt = ast.newExpressionStatement(currentToken);
         stmt["expression"] = parseExpression(Precedence.LOWEST)
@@ -213,16 +313,100 @@ let newParser = fn(l) {
         return expression
     }
 
-    let peekPrecedence = fn() {
-        let p = precedences[TokenType[peekToken.tokenType]]
+    let parseGroupedExpression = fn() {
+        nextToken()
+        let expression = parseExpression(Precedence.LOWEST)
+
+        if (!expectPeek(TokenType.RPAREN)) {
+            return null
+        }
+        return expression
+    }
+
+    let parseIfExpression = fn() {
+        let expression = ast.newIfExpression(currentToken)
+        if (!expectPeek(TokenType.LPAREN)) {
+            return null;
+        }
+        nextToken()
+        expression["condition"] = parseExpression(Precedence.LOWEST)
+
+        if (!expectPeek(TokenType.RPAREN)) {
+            return null
+        }
+        if (!expectPeek(TokenType.LBRACE)) {
+            return null
+        }
+        expression["consequence"] = parseBlockStatement()
+        if (peekTokenIs(TokenType.ELSE)) {
+            nextToken()
+            if (!expectPeek(TokenType.LBRACE)) {
+                return null
+            }
+            expression["alternative"] = parseBlockStatement()
+        }
+        return expression
+        
+    }
+
+    let parseCallExpression = fn(func) {
+        let exp = ast.newCallExpression(currentToken, func)
+        exp["arguments"] = parseExpressionList(TokenType.RPAREN)
+        return exp
+    }
+
+    let parseAssignExpression = fn(target) {
+        let tok = currentToken
+        nextToken()
+        let right = parseExpression(Precedence.LOWEST)
+        return ast.newAssignExpression(tok, target, right)
+    }
+
+    let parseIndexExpression = fn(left) {
+        nextToken()
+        let index = parseExpression(Precedence.LOWEST)
+        let exp = ast.newIndexExpression(currentToken, left, index)
+
+        if (!expectPeek(TokenType.RBRACKET)) {
+            return null
+        }
+        return exp
+    }
+
+    let parseExpressionList = fn(endTokenType) {
+        let expressions = []
+        if (peekTokenIs(endTokenType)) {
+            nextToken()
+            return expressions
+        }
+        nextToken()
+        expressions = append(expressions, parseExpression(Precedence.LOWEST))
+
+        while(fn(){peekTokenIs(TokenType.COMMA)}, fn() {
+            nextToken()
+            nextToken()
+            expressions = append(expressions, parseExpression(Precedence.LOWEST))
+        })
+        if (!expectPeek(endTokenType)) {
+            return null
+        }
+        return expressions
+    }
+
+    let currentPrecedence = fn() {
+        let p = precedences[TokenType[currentToken.tokenType]]
         if (p != null) {
             return p
         } 
         Precedence.LOWEST
     }
 
-    let currentPrecedence = fn() {
-        let p = precedences[TokenType[currentToken.tokenType]]
+    let currentTokenIs = fn(tokenType) {
+        currentToken.tokenType == tokenType
+    }
+
+    let peekPrecedence = fn() {
+        let p = precedences[TokenType[peekToken.tokenType]]
         if (p != null) {
             return p
         } 

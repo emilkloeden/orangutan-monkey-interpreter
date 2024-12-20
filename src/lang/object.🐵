@@ -40,7 +40,7 @@ let Null = fn() {
 let Integer = fn(value) {
     let _value = int(value)
     let toString = fn() {
-        str(value)
+        str(_value)
     }
 
     let hashKey = fn() {
@@ -52,6 +52,37 @@ let Integer = fn(value) {
         "value": _value,
         "toString": toString,
         "hashKey": hashKey
+    }
+}
+
+
+let String = fn(value) {
+    let _value = str(value)
+    let toString = fn() {
+        _value
+    }
+
+    let hashKey = fn() {
+        HashKey("OBJECT.STRING", _value))
+    }
+
+    return {
+        "_type": "OBJECT.STRING",
+        "value": _value,
+        "toString": toString,
+        "hashKey": hashKey
+    }
+}
+
+let Array = fn(elements) {
+    let toString = fn() {
+        return "[" + join(map(elements, fn(e) {e.toString()}), ",
+    ") +  "]"
+    }
+    return {
+        "_type": "OBJECT.ARRAY"
+        "elements": elements,
+        "toString": toString,
     }
 }
 
