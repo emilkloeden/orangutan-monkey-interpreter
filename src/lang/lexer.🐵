@@ -125,7 +125,6 @@ let newLexer = fn(input) {
             }
             return newTokenAndAdvance("LT", "<")
         }
-
         if (getChar() == ":") {
             return newTokenAndAdvance("SEMICOLON", ":")
         } 

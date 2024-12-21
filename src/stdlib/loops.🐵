@@ -23,6 +23,6 @@ let for = fn(init, condition, increment, body) {
         return result; 
     } 
     return loop(increment(state));
-  };
+  }
   return loop(init);
 }

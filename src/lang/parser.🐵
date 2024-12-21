@@ -198,6 +198,7 @@ let newParser = fn(l) {
         return program
     }
 
+
     let parseStatement = fn() {
         // TODO: implement comment, let, return statement parsing
         if (currentToken.tokenType == TokenType.COMMENT) {
@@ -209,14 +210,14 @@ let newParser = fn(l) {
         if (currentToken.tokenType == TokenType.RETURN) {
             return parseReturnStatement();
         }
-        return parseExpressionStatement()
+        return parseExpressionStatement();
     }
 
     let parseCommentStatement = fn() {
         return ast.newComment(currentToken, currentToken.literal)
     }
 
-    let parseLetStatement fn() {
+    let parseLetStatement = fn() {
         let stmt = ast.newLetStatement(currentToken);
         if (!expectPeek(TokenType.IDENT)) {
             return null

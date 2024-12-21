@@ -63,7 +63,7 @@ let String = fn(value) {
     }
 
     let hashKey = fn() {
-        HashKey("OBJECT.STRING", _value))
+        HashKey("OBJECT.STRING", _value)
     }
 
     return {
@@ -80,7 +80,7 @@ let Array = fn(elements) {
     ") +  "]"
     }
     return {
-        "_type": "OBJECT.ARRAY"
+        "_type": "OBJECT.ARRAY",
         "elements": elements,
         "toString": toString,
     }
@@ -95,5 +95,64 @@ let HashKey = fn(_type, value) {
     return {
         "_type": _type,
         "toString": toString
+    }
+}
+
+let HashPair = fn(key, value) {
+    return {
+        "_type": "OBJECT.HASHPAIR",
+        "key": key,
+        "value": value
+    }
+}
+
+let Hash = fn(pairs) {
+    let toString = fn() {
+        let values = join(map(values(pairs), fn(pair) {
+            let key = pair.key
+            let value = pair.value
+            let keyString = key.toString()
+            let valueString = value.toString()
+            if (instanceOf(key, "OBJECT.STRING")) {
+                keyString = '"' + keyString + '"'
+            }
+            if (instanceOf(value, "OBJECT.STRING")) {
+                valueString = '"' + valueString + '"'
+            }
+            return keyString + ": " + valueString
+        }), ",
+    ")
+    return "{" + values +"
+}"
+    }
+    return {
+        "_type": "OBJECT.HASH",
+        "toString": toString,
+        "pairs": pairs
+    }
+}
+
+let Function = fn(parameters, body, env) {
+    let toString = fn() {
+        let paramsString = join(map(parameters, fn(p) {p.toString()}), ", ")
+        let bodyString = body.toString()
+        return "fn (" + paramsString + ") {
+    " + bodyString +"
+}"
+    }
+    return {
+        "_type": "OBJECT.FUNCTION",
+        "toString": toString,
+        "parameters": parameters,
+        "body": body
+    }
+}
+
+let BuiltIn = fn(func) {
+    let toString = fn() {"builtin function"}
+    return {
+        "_type": "OBJECT.BUILTIN",
+        "toString": toString,
+        "fn": func
     }
 }

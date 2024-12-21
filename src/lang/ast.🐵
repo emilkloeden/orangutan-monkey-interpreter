@@ -75,7 +75,7 @@ let newIdentifier = fn(token, value) {
         "_type": "AST.IDENTIFIER",
         "toString": toString,
         "tokenLiteral": tokenLiteral,
-        "value": value,
+        "value": value
     }
 }
 
@@ -93,7 +93,7 @@ let newBoolean = fn(token, value) {
         "_type": "AST.BOOLEAN",
         "toString": toString,
         "tokenLiteral": tokenLiteral,
-        "value": value,
+        "value": value
     }
 }
 
@@ -101,11 +101,9 @@ let newIntegerLiteral = fn(token) {
     let value = null;
     let toString = fn() {
         if (value == null) {
-            ""
-        } else {
-            // TODO: confirm
-            str(value)
+            return ""
         }
+        return str(value)
     }
 
     let tokenLiteral = fn() {
@@ -116,7 +114,7 @@ let newIntegerLiteral = fn(token) {
         int(value)
     }
 
-    // TODO: confirm
+
     return {
         "_type": "AST.INTEGERLITERAL",
         "value": getValue,
@@ -139,7 +137,7 @@ let newStringLiteral = fn(token, value) {
         "_type": "AST.STRINGLITERAL",
         "toString": toString,
         "tokenLiteral": tokenLiteral,
-        "value": value,
+        "value": value
     }
 }
 
@@ -157,7 +155,7 @@ let newNullLiteral = fn(token, value) {
         "_type": "AST.NULLLITERAL",
         "toString": toString,
         "tokenLiteral": tokenLiteral,
-        "value": value,
+        "value": value
     }
 }
 
@@ -166,7 +164,7 @@ let newArrayLiteral = fn(token) {
     let body = null
 
     let toString = fn() {
-        return "[" + join(map(elements, fn(e) {e.toString()}), ", ") "]"
+        return "[" + join(map(elements, fn(e) {e.toString()}), ", ") + "]"
     }
 
     let tokenLiteral = fn() {
@@ -193,14 +191,17 @@ let newHashLiteral = fn(token) {
             let key = pair[0]
             let value = pair[1]
             return key.toString() + ": " + value.toString()
-        }
-        return "{
-    " + join(ps, ",
-    ") + "
-}"
+        })
+        let startStr = "{
+    ";
+        let joinStr =  ",
+    "
+        let endStr = "
+}"  
+        return  startStr + join(ps, joinStr) + endStr;
     }
 
-    let tokenLiteral() {
+    let tokenLiteral = fn() {
         return token.literal
     }
 
@@ -209,7 +210,7 @@ let newHashLiteral = fn(token) {
         "_type": "AST.HASHLITERAL",
         "pairs": getPairs(),
         "tokenLiteral": tokenLiteral,
-        "toString": toString,
+        "toString": toString
     }
 }
 
@@ -220,7 +221,7 @@ let newFunctionLiteral = fn(token) {
 }"
     }
 
-    let tokenLiteral() {
+    let tokenLiteral = fn () {
         return token.literal
     }
 
@@ -228,7 +229,7 @@ let newFunctionLiteral = fn(token) {
         "_type": "AST.HASHLITERAL",
         "parameters": parameters,
         "tokenLiteral": tokenLiteral,
-        "toString": toString,
+        "toString": toString
     }
 }
 
@@ -263,8 +264,8 @@ let newCallExpression = fn(token, func) {
     let arguments = []
 
     let toString = fn() {
-        let a = map(arguments, fn(a) {a.toString()})
-        return func.toString() + "(" + join(a, ", ") + ")"
+        let p = map(arguments, fn(a) {a.toString()})
+        return func.toString() + "(" + join(p, ", ") + ")"
     }
 
     let tokenLiteral = fn() {
@@ -272,7 +273,7 @@ let newCallExpression = fn(token, func) {
     }
 
     return {
-        "_type": "AST.CALLEXPRESSION"
+        "_type": "AST.CALLEXPRESSION",
         "arguments": arguments,
         "toString": toString,
         "tokenLiteral": tokenLiteral,
@@ -294,7 +295,7 @@ let newAssignExpression = fn(token, target, value) {
     }
 
     return {
-        "_type": "AST.ASSIGNEXPRESSION"
+        "_type": "AST.ASSIGNEXPRESSION",
         "toString": toString,
         "tokenLiteral": tokenLiteral,
         "target": target,
@@ -318,7 +319,7 @@ let newIndexExpression = fn(token, left, index) {
         "left": left,
         "index": index,
         "tokenLiteral": tokenLiteral,
-        "toString": toString,
+        "toString": toString
     }
 }
 
@@ -337,7 +338,7 @@ let newReturnStatement = fn(token) {
         "_type": "AST.RETURNSTATEMENT",
         "toString": toString,
         "tokenLiteral": tokenLiteral,
-        "returnValue": returnValue,
+        "returnValue": returnValue
     }
 }
 
@@ -363,7 +364,7 @@ let newExpressionStatement = fn(token) {
         "getExpression": getExpression,
         "expression": expression,
         "tokenLiteral": tokenLiteral,
-        "toString": toString,
+        "toString": toString
     }
 }
 

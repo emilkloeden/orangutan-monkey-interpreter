@@ -1,8 +1,11 @@
-let loops = use("../stdlib/loops.🐵")
-let object = use("./object.🐵");
 let ast = use("./ast.🐵");
+let object = use("./object.🐵");
+let builtins = use("./builtins.🐵")
+let loops = use("../stdlib/loops.🐵")
+
 let instanceOf = ast.instanceOf;
-let for = loops.for;
+let Builtins = builtins.Builtins;
+let while = loops.while;
 
 let evaluate = fn(node, env) {
     if (node == null) {
@@ -34,6 +37,23 @@ let evaluate = fn(node, env) {
     }
     if (instanceOf(node, "AST.ARRAYLITERAL")) {
         return evaluateArrayLiteral(node, env)
+    }
+    if (instanceOf(node, "AST.IDENTIFIER")) {
+        return evaluateIdentifier(node, env)
+    }
+    if (instanceOf(node, "AST.ASSIGNEXPRESSION")) {
+        return evaluateAssignment(
+            node.target,
+            node.value,
+            env
+        )
+    }
+    if (instanceOf(node, "AST.PREFIXEXPRESSION")) {
+        let right = evaluate(node.right, env)
+        if (isError(right)) {
+            return right
+        }
+        return evaluatePrefixExpression(node.operator, right)
     }
     if (instanceOf(node, "AST.INFIXEXPRESSION")) {
         let left = evaluate(node.left, env);
@@ -68,6 +88,33 @@ let evaluateProgram = fn(node, env) {
     })
 
     return result;
+}
+
+let evaluatePrefixExpression = fn(operator, right) {
+    if (right == null) {
+        return newError("evaluatePrefixExpression has a null right object");
+    }
+    if (operator == "!") {
+        return evaluateBangOperatorExpression(right);
+    } 
+    if (operator == "-") {
+        return evaluateMinusPrefixOperatorExpression(right);
+    } 
+    return newError("unknown operator: " + operator + right._type); 
+}
+
+let evaluateBangOperatorExpression = fn(right) {
+    if (isTruthy(right)) {
+        return object.Boolean(false)
+    }
+    return object.Boolean(true)
+}
+
+let evaluateMinusPrefixOperatorExpression = fn(right) {
+    if(!instanceOf(right, "OBJECT.INTEGER")) {
+        return newError("unknown operator: -" + right._type)
+    }
+    return object.Integer(-right.value)
 }
 
 let evaluateInfixExpression = fn(operator, left, right, env) {
@@ -105,6 +152,96 @@ let evaluateIntegerInfixExpression = fn(operator, left, right) {
   );
 }
 
+let evaluateIdentifier = fn(node, env) {
+    let value = env.get(node.value)
+    if (value != null) {
+        return value.value
+    }
+    let builtin = Builtins[node.value]
+    if (builtin != null) {
+        return builtin
+    }
+    return newError("identifier not found: " + node.value)
+}
+
+let evaluateAssignment = fn(left, right, env) {
+    if (instanceOf(left, "AST.IDENTIFIER")) {
+        let got = env.get(left.value)
+        if (got == null) {
+            return newError("identifier not found: " + left.value)
+        }
+        let originalEnv = got.env
+        let value = evaluate(right, env)
+        if (isError(value)) {
+            return value
+        }
+        return originalEnv.set(left.value, value)
+    }
+    if (instanceOf(left, "AST.INDEXEXPRESSION")) {
+        let indexed = evaluate(left.left, env)
+        if (isError(indexed)) {
+            return indexed
+        }
+        let index = evaluate(left.index, env)
+        if (isError(index)) {
+            return index
+        }
+        if (instanceOf(indexed, "OBJECT.ARRAY") && instanceOf(index, "OBJECT.INTEGER")) {
+            return evaluateArrayAssignment(indexed, index, right, env)
+        }
+        if (instanceOf(indexed, "OBJECT.HASH")) {
+            return evaluateHashAssignment(indexed, index, right, env)
+        }
+        return newError("index operator not supported: " + left)
+    }
+    return newError("Cannot assign to something that is not an identifier or an index expression. left: " + left.toString() + " right: " + right.toString())
+}
+
+let evaluateArrayAssignment = fn(array, index, right, env) {
+    let unpacked = unpackArrayIndex(array, index)
+    let arrayObj = unpacked[0]
+    let idx = unpacked[1]
+    let max = unpacked[2]
+    if (idx < 0 || idx > max) {
+        return newError("index out of range")
+    }
+    let value = evaluate(right, env)
+    if (isError(value)) {
+        return value
+    }
+    arrayObj["elements"][idx] = value
+    return value
+}
+
+let unpackArrayIndex = fn(array, index) {
+    return [
+        array,
+        index.value,
+        len(array.elements) - 1
+    ]
+}
+
+let evaluateHashAssignment = fn(hash, index, right, env) {
+    if (!isHashable(index)) {
+        return newError("Unusable as hash key: " + index)
+    }
+    let hashKeyString = index.hashKey().toString()
+    let value = evaluate(right, env)
+    if (isError(value)) {
+        return value
+    }
+    if (value == null) {
+        return newError("RHS of hash assignment expression evaluate to host null");
+    }
+    let hashPair = object.HashPair(index, value)
+    if (!hash.pairs) {
+        hash["pairs"] = {}
+    }
+    hash["pairs"]["hashKeyString"] = hashPair
+
+    return value
+}
+
 let evaluateLetStatement = fn(node, env) {
     let value = evaluate(node.value, env)
     if (isError(value)) {
@@ -132,19 +269,20 @@ let evaluateBlockStatement = fn(node, env) {
         result = evaluate(node.statements[i], env)
         if (result != null) {
             if (instanceOf(result, "OBJECT.RETURNVALUE") || instanceOf(result, "OBJECT.ERROR")) {
-                return result
+                done = true
             }
         }
+        i = i + 1
     })
     return result
 }
 
 let evaluateArrayLiteral = fn(node, env) {
     let elements = evaluateExpressions(node.elements, env)
-    if (len(elements) == 1 && isError(elements[0]) {
+    if (len(elements) == 1 && isError(elements[0])) {
         return elements[0]
-    })
-    return object.Array()
+    }
+    return object.Array(elements)
 }
 
 let isError = fn(obj) {
@@ -153,6 +291,21 @@ let isError = fn(obj) {
   }
   return false;
 }
+
+let isTrue = fn(obj) {
+    instanceOf(obj, "OBJECT.BOOLEAN") && obj.value == true
+}
+
+let isFalse = fn(obj) {
+    instanceOf(obj, "OBJECT.BOOLEAN") && obj.value == false
+}
+
+let isHashable = fn(obj) {
+    // NOTE: this is && typeof obj.hashKey === function in orangutan
+    // So this will overreport
+   obj != null && obj.hashKey != null
+}
+
 
 let newError = fn(msg) {
     return object.newError(message);

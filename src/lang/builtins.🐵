@@ -1,0 +1,21 @@
+let loops = use("../stdlib/loops.🐵");
+let object = use("./object.🐵");
+
+let while = loops.while;
+
+let putsFn = fn(env, args) {
+    let output = []
+    let i = 0
+    while(fn(){i < len(args)}, fn() {
+        output = append(output, arg.toString())
+        i = i + 1
+    })
+    puts("before")
+    puts(join(output, " "))
+    puts("after")
+    return object.Null()
+}
+
+let Builtins = {
+    "puts": putsFn
+}

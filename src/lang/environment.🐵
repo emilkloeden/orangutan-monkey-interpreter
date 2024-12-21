@@ -27,6 +27,6 @@ let newEnvironment = fn(store, outer) {
     return {
         "getStore": getStore,
         "get": get,
-        "set": set,
+        "set": set
     }
 }
