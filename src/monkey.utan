@@ -1,14 +1,35 @@
 let loops = use("./stdlib/loops.🐵")
 let lexer = use("./lang/lexer.🐵")
+let token = use("./lang/token.🐵")
 let parser = use("./lang/parser.🐵")
 let environment = use("./lang/environment.🐵")
 let evaluator = use("./lang/evaluator.🐵")
 
 let while = loops.while;
+let TokenType = token.TokenType;
 let evaluate = evaluator.evaluate;
-let input = readFile("../tests/math.utan"); // Ideally we'd have a better way to load input
+let input = readFile("../tests/lexer.utan"); // Ideally we'd have a better way to load input
 
+writeFile("input.txt", input)
 let env = environment.newEnvironment({});
+let l = lexer.newLexer(input);
+let toks = []
+let done = false
+let tok = null
+while(fn(){!done}, fn() {
+    tok = l.nextToken()
+    puts(tok)
+    if (tok != null) {
+        toks = append(toks, tok)
+    }
+    if (TokenType[tok.tokenType] == TokenType.EOF) {
+        done = true
+    }
+})
+
+// writeFile("tokens.txt", join(map(filter(toks, fn(t) {t!=null}), fn(t) {t.toString()}), "
+// "))
+
 let l = lexer.newLexer(input);
 let p = parser.newParser(l);
 

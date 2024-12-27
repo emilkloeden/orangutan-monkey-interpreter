@@ -1,0 +1,84 @@
+let loops = use("../src/stdlib/loops.🐵")
+let harness = use("harness.test.utan")
+
+let while = loops.while;
+let runTests = harness.runTests;
+
+
+let toksEqual = fn(this, other) {
+    return this.tokenType == other.tokenType && this.literal == other.literal;
+}
+
+let compareTokenArrays = fn(expected, actual) {
+    if (len(expected) != len(actual)) {
+        return false
+    }
+    let i = 0
+    let res = true
+    while(fn(){i < len(expected) && res}, fn(){
+        if (!toksEqual(expected[i], actual[i])) {
+            res = false
+        }
+        i = i + 1
+    })
+    return res
+}
+
+
+let tests = [
+    {
+        "input": 'let;',
+        "expected": [
+            {"tokenType": "LET", "literal": "let"}, 
+            {"tokenType": "SEMICOLON", "literal": ";"},
+            {"tokenType": "EOF", "literal": "SlashZero"}
+        ]
+    },
+    
+    {
+        "input": "let a = 5; puts(a);", 
+        "expected":    [
+            {"tokenType": "LET", "literal": "let"}, 
+            {"tokenType": "IDENT", "literal": "a"}, 
+            {"tokenType": "ASSIGN", "literal": "="}, 
+            {"tokenType": "INT", "literal": "5"}, 
+            {"tokenType": "SEMICOLON", "literal": ";"}, 
+            {"tokenType": "IDENT", "literal": "puts"}, 
+            {"tokenType": "LPAREN", "literal": "("}, 
+            {"tokenType": "IDENT", "literal": "a"}, 
+            {"tokenType": "RPAREN", "literal": ")"}, 
+            {"tokenType": "SEMICOLON", "literal": ";"}, 
+            {"tokenType": "EOF", "literal": "SlashZero"}
+        ]
+    },
+    {
+        "input": 'return "Hi!";',
+        "expected": [
+            {"tokenType": "RETURN", "literal": "return"}, 
+            {"tokenType": "STRING", "literal": "Hi!"}, 
+            {"tokenType": "SEMICOLON", "literal": ";"}, 
+            {"tokenType": "EOF", "literal": "SlashZero"}
+
+        ]
+    },
+    {
+        "input": 'let double = fn(a) { a * 2 }',
+        "expected": [
+            {"tokenType": "LET", "literal": "let"}, 
+            {"tokenType": "IDENT", "literal": "double"}, 
+            {"tokenType": "ASSIGN", "literal": "="}, 
+            {"tokenType": "FUNCTION", "literal": "fn"}, 
+            {"tokenType": "LPAREN", "literal": "("},
+            {"tokenType": "IDENT", "literal": "a"},
+            {"tokenType": "RPAREN", "literal": ")"},
+            {"tokenType": "LBRACE", "literal": "{"},
+            {"tokenType": "IDENT", "literal": "a"},
+            {"tokenType": "ASTERISK", "literal": "*"},
+            {"tokenType": "INT", "literal": "2"},
+            {"tokenType": "RBRACE", "literal": "}"},
+            {"tokenType": "EOF", "literal": "SlashZero"}
+        ]
+    }
+]
+
+runTests(tests, compareTokenArrays)

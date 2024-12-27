@@ -1,9 +1,11 @@
-let while = use("./loops.🐵");
+let loops = use("./loops.🐵");
+let while = loops.while;
+
 
 let includes = fn(arr, needle) {
     let i = 0
     let found = false
-    loops.while(fn() {i < len(arr) && !found}, fn() {
+    while(fn() {i < len(arr) && !found}, fn() {
         if (arr[i] == needle) {
             found = true
         }
@@ -12,3 +14,43 @@ let includes = fn(arr, needle) {
     return found
 }
 
+
+let slice = fn(arr, start, end) {
+    let res = []
+    while(fn(){start < end}, fn(){
+        res = append(res, arr[start])
+        start = start + 1
+    })
+    return res
+}
+
+let all = fn(arr, test) {
+    let i = 0
+    let result = true;
+    while(fn() {i<len(arr) && result}, fn() {
+        if (!test(arr[i], i)) {
+            result = false
+        }
+        i = i + 1
+    })
+    result
+}
+
+let equal = fn(arrOne, arrTwo) {
+    let i = 0
+    let lenOne = len(arrOne)
+    let lenTwo = len(arrTwo)
+    if (lenOne != lenTwo) {
+        return false
+    }
+    
+    
+    let res = true
+    while (fn(){i < lenOne && res}, fn() {
+        if(arrOne[i] != arrTwo[i]) {
+            res = false
+        }
+        i = i + 1
+    })
+    res
+}

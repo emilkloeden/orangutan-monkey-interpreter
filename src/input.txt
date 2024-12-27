@@ -1,0 +1,59 @@
+let lexer = use("../src/lang/lexer.🐵")
+let token = use("../src/lang/token.🐵")
+let loops = use("../src/stdlib/loops.🐵")
+let arrays = use("../src/stdlib/arrays.🐵")
+let while = loops.while;
+let TokenType = token.TokenType;
+let equal = arrays.equal;
+let diff = arrays.diff;
+
+let input = "let a = 5; puts(a);"
+
+let tests = [
+    {
+        "input":     "let a = 5; puts(a);", 
+        "expected":    [{"tokenType": "LET", "literal": "let"}, {"tokenType": "IDENT", "literal": "a"}, {"tokenType": "ASSIGN", "literal": "="}, {"tokenType": "INT", "literal": "5"}, {"tokenType": "SEMICOLON", "literal": ";"}, {"tokenType": "IDENT", "literal": "puts"}, {"tokenType": "IDENT", "literal": "a"}, {"tokenType": "SEMICOLON", "literal": ";"}, {"tokenType": "EOF", "literal": "SlashZero"}]
+    }
+]
+let i = 0
+let good = true
+let results = []
+let failures = []
+while (fn(){i<len(tests)}, fn() {
+    let test = tests[i]
+    let input = test.input
+    let expected = test.expected
+    
+    let l = lexer.newLexer(input);
+    let actual = l.tokens()
+    puts("actual", actual)
+    if (equal(expected, actual)) {
+        results = append(results, ".")
+    } else {
+        results = append(results, "F")
+        
+        failures = append(failures, {"input": input, "expected": expected, "actual": actual})
+    }
+    
+    puts("diff", diff(actual, expected))
+
+    i = i + 1
+
+})
+
+
+puts(join(results,""))
+if (len(failures) > 0) {
+    let i = 0
+    puts(len(failures), "tests FAILED")
+    while (fn(){i< len(failures)}, fn() {
+        let test = failures[i]
+        puts("   ", test.input)
+        puts("Expected:
+    ",  test.expected)
+        puts()
+        puts("Actual:
+    ", test.actual)
+        i = i + 1
+    })
+}

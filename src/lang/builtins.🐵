@@ -4,6 +4,7 @@ let object = use("./object.🐵");
 let while = loops.while;
 
 let putsFn = fn(env, args) {
+    
     let output = []
     let i = 0
     while(fn(){i < len(args)}, fn() {

@@ -64,7 +64,7 @@ let keywords = {
 
 let lookupIdent = fn(ident) {
     let keywordNames = keys(keywords)
-    puts("ident:", ident)
+    // puts("ident:", ident)
     if (arrays.includes(keywordNames, ident)) {
         keywords[ident]
     } else {
@@ -73,8 +73,10 @@ let lookupIdent = fn(ident) {
 }
 
 let newToken = fn(tokenType, literal) {
+    let _tokenType = tokenType
+    let _literal = literal
     return {
-        "tokenType": tokenType,
-        "literal": literal
+        "tokenType": _tokenType,
+        "literal": _literal
     }
 }

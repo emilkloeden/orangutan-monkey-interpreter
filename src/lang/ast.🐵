@@ -12,6 +12,10 @@ let newProgram = fn() {
         return join(map(statements, fn(s) {s.toString()}),"")
     }
 
+    let gs = fn() {
+        puts(statements)
+        return statements
+    }
     return {
         "_type": "AST.PROGRAM",
         "statements": statements,
@@ -36,7 +40,7 @@ let newCommentStatement = fn(token, value) {
     }
 }
 
-let newLetStatementent = fn(token) {
+let newLetStatement = fn(token) {
     let name = ""
     let value = null
     

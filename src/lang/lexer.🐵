@@ -1,10 +1,13 @@
-let arrays = use("../stdlib/arrays.🐵")
 let loops = use("../stdlib/loops.🐵")
+let arrays = use("../stdlib/arrays.🐵")
 let token = use("token.🐵");
 
+let includes = arrays.includes;
+let slice = arrays.slice;
 let while = loops.while;
 let lookupIdent = token.lookupIdent;
 let newToken = token.newToken;
+let TokenType = token.TokenType;
 
 let newLexer = fn(input) {
     // We create an array of single-character strings because we 
@@ -24,7 +27,7 @@ let newLexer = fn(input) {
             ch = input[readPosition]
         }
         position = readPosition;
-        readPosition = readPosition + 1
+        readPosition = readPosition + 1;
     }
 
     let peekChar = fn() {
@@ -55,6 +58,7 @@ let newLexer = fn(input) {
     let nextToken = fn () {
         skipWhitespace()
         let tok = {}
+        // puts(getPosition(), "'" + getChar() + "'")
         if (getChar() == "+") {
             return newTokenAndAdvance("PLUS", "+")
         } 
@@ -64,7 +68,6 @@ let newLexer = fn(input) {
         if (getChar() == "*") {
             return newTokenAndAdvance("ASTERISK", "*")
         } 
-        // TODO: Handle comments
         if (getChar() == "/") {
             if (peekChar() == "/") {
                 readChar()
@@ -126,7 +129,10 @@ let newLexer = fn(input) {
             return newTokenAndAdvance("LT", "<")
         }
         if (getChar() == ":") {
-            return newTokenAndAdvance("SEMICOLON", ":")
+            return newTokenAndAdvance("COLON", ":")
+        }
+        if (getChar() == ";") {
+            return newTokenAndAdvance("SEMICOLON", ";")
         } 
         if (getChar() == "(") {
             return newTokenAndAdvance("LPAREN", "(")
@@ -149,9 +155,6 @@ let newLexer = fn(input) {
         if (getChar() == "]") {
             return newTokenAndAdvance("RBRACKET", "]")
         } 
-        if (getChar() == ":") {
-            return newTokenAndAdvance("COLON", ":")
-        } 
         if (getChar() == ".") {
             return newTokenAndAdvance("PERIOD", ".")
         }
@@ -161,14 +164,17 @@ let newLexer = fn(input) {
         }
         if (isDigit(getChar())) {
             let number = readNumber()
-            return newTokenAndAdvance("INT", number)
+            return newToken("INT", number)
         }
         if (isLetter(getChar())) {
             let ident = readIdentifier()
-            return newTokenAndAdvance(lookupIdent(ident), ident)
+            // puts("ident:", ident)
+            return newToken(lookupIdent(ident), ident)
+            // return newTokenAndAdvance(lookupIdent(ident), ident)
         }
         if (getChar() == "SlashZero") {
-            return newTokenAndAdvance("EOF", getChar())
+            // return newTokenAndAdvance("EOF", getChar())
+            return newToken("EOF", getChar())
         }
         return newTokenAndAdvance("ILLEGAL", getChar())
     }
@@ -189,18 +195,11 @@ let newLexer = fn(input) {
             // \r and \0 but I can't do that without escape character handling
             if (char == "SlashZero" || char == "
 "){
-                done = false
+                done = true
             }
-            let res = []
-            let i = p;
-            let end = getPosition();
-            while(fn(){i < end}, fn(){
-                res = append(res, input[i])
-                i = i + 1
-            })
-            
-            return join(res, "")
         })
+        
+        return join(slice(input, p, getPosition()), "")
     }
 
     let readString = fn() {
@@ -209,22 +208,18 @@ let newLexer = fn(input) {
         while(fn(){!done}, fn() {
             readChar()
             let char = getChar()
+            // puts(char, getPosition())
             // NOTE: the orangutan interpreter also checks for 
             // \0 but I can't do that without escape character handling
             // TODO: Excitedly Orangutan needs 'strings' just for this use case
             if (char == '"' || char == "SlashZero"){
-                done = false
+                done = true
             }
-            let res = []
-            let i = p;
-            let end = getPosition();
-            while(fn(){i < end}, fn(){
-                res = append(res, input[i])
-                i = i + 1
-            })
             
-            return join(res, "")
         })
+        let res = join(slice(input, p, getPosition()), "")
+        // puts("res", res)
+        return join(slice(input, p, getPosition()), "")
     }
 
     let readNumber = fn() {
@@ -236,19 +231,9 @@ let newLexer = fn(input) {
             } else {
                 break = true
             }
-
         })
-        
-        let res = []
-        let i = p;
-        let end = getPosition();
-        while(fn(){i < end}, fn(){
-            res = append(res, input[i])
-            i = i + 1
-        })
-        
-        return join(res, "")
-
+       
+        return join(slice(input, p, getPosition()), "")
     }
 
     let readIdentifier = fn() {
@@ -259,18 +244,9 @@ let newLexer = fn(input) {
             if (getChar() == "SlashZero") {
                 let done = true
             }
-
         })
         
-        let res = []
-        let i = p;
-        let end = getPosition();
-        while(fn(){i < end}, fn(){
-            res = append(res, input[i])
-            i = i + 1
-        })
-        
-        return join(res, "")
+        return join(slice(input, p, getPosition()), "")
 
     }
 
@@ -280,12 +256,26 @@ let newLexer = fn(input) {
         return tok
     }
 
+    let tokens = fn() {
+        let res = []
+        let done = false
+        while (fn(){!done}, fn() {
+            let tok = nextToken()
+            res = append(res, tok)
+            if(tok.tokenType == "EOF") {
+                done = true
+            }
+        })
+        return res
+    }
+
     // this.ch doesn't update, so we have a function. I'm doing closures wrong
     return {
         "readChar": readChar,
         "ch": ch, 
         "getChar": getChar,
-        "nextToken": nextToken
+        "nextToken": nextToken,
+        "tokens": tokens
     }
     
 }
@@ -294,7 +284,7 @@ let isLetter = fn(ch) {
     let lowercase = "abcdefghijklmnopqrstuvwxyz"
     let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     let all = lowercase + uppercase + "_"
-    return arrays.includes(split(all, ""), ch)
+    return includes(split(all, ""), ch)
 }
 
 let isDigit = fn(ch) {
@@ -315,4 +305,3 @@ let isDigit = fn(ch) {
             false
         }
 }
-

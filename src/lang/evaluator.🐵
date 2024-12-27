@@ -38,6 +38,9 @@ let evaluate = fn(node, env) {
     if (instanceOf(node, "AST.ARRAYLITERAL")) {
         return evaluateArrayLiteral(node, env)
     }
+    if (instanceOf(node, "AST.FUNCTIONLITERAL")) {
+        return evaluateFunctionLiteral(node, env)
+    }
     if (instanceOf(node, "AST.IDENTIFIER")) {
         return evaluateIdentifier(node, env)
     }
@@ -71,11 +74,15 @@ let evaluate = fn(node, env) {
 
 let evaluateProgram = fn(node, env) {
     let result = null;
+    puts("evaluate program start: result:", result)
     let i = 0
     let done = false
-    while(fn() {i < len(node.statements) && !done}, fn() {
-        let statement = node.statements[i]
+    let statements = node.statements
+    // puts(statements)
+    while(fn() {i < len(statements) && !done}, fn() {
+        let statement = statements[i]
         result = evaluate(statement, env);
+        puts("result: ", result)
         if (instanceOf(result, "OBJECT.RETURNVALUE")) {
             result = result.value;
             done = true;
@@ -86,11 +93,13 @@ let evaluateProgram = fn(node, env) {
         }
         i = i + 1;
     })
+    puts("evaluate program end: result:", result)
 
     return result;
 }
 
 let evaluatePrefixExpression = fn(operator, right) {
+    puts("evaluateInfixExpression called with right:", right)
     if (right == null) {
         return newError("evaluatePrefixExpression has a null right object");
     }
@@ -118,6 +127,7 @@ let evaluateMinusPrefixOperatorExpression = fn(right) {
 }
 
 let evaluateInfixExpression = fn(operator, left, right, env) {
+    puts("evaluateInfixExpression called with left:", left, "right:", right)
     if (left == null || right == null) {
         return newError("Issue with infixExpression")
     }
@@ -161,7 +171,7 @@ let evaluateIdentifier = fn(node, env) {
     if (builtin != null) {
         return builtin
     }
-    return newError("identifier not found: " + node.value)
+    return newError("identifier was not found: " + node.value)
 }
 
 let evaluateAssignment = fn(left, right, env) {
@@ -283,6 +293,12 @@ let evaluateArrayLiteral = fn(node, env) {
         return elements[0]
     }
     return object.Array(elements)
+}
+
+let evaluateFunctionLiteral = fn(node, env) {
+    let params = node.parameters;
+    let body = node.body;
+    return object.Function(params, body, env)
 }
 
 let isError = fn(obj) {
