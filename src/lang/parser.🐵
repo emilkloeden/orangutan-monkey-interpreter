@@ -101,9 +101,8 @@ let newParser = fn(l) {
     }
 
     let parseIntegerLiteral = fn() {
-        let lit = ast.newIntegerLiteral(currentToken)
-        lit["value"] = currentToken.literal
-        return lit
+        // puts("---parseIntegerLiteral", currentToken)
+        return ast.newIntegerLiteral(currentToken, currentToken.literal)
     }
 
     let parseStringLiteral = fn() {
@@ -115,14 +114,12 @@ let newParser = fn(l) {
     }
 
     let parseArrayLiteral = fn() {
-        let array = ast.newArrayLiteral(currentToken);
-        array["elements"] = parseExpressionList("RBRACKET");
-        return array;
+        return ast.newArrayLiteral(currentToken, parseExpressionList("RBRACKET"));
     };
 
     let parseHashLiteral = fn() {
-        let lit = ast.newHashLiteral(currentToken)
-
+        let tok = currentToken
+        pairs = {}
         while(fn(){!peekTokenIs("RBRACE")}, fn() {
             nextToken()
             let key = parseExpression(Precedence.LOWEST)
@@ -133,10 +130,7 @@ let newParser = fn(l) {
             nextToken()
             let value = parseExpression(Precedence.LOWEST)
 
-            if (lit["pairs"] == null) {
-                lit["pairs"] = {}
-            }
-            lit["pairs"][key] = value
+            pairs[key] = value
             if (!peekTokenIs("RBRACE") && !expectPeek("COMMA")) {
                 return null
             }
@@ -144,22 +138,22 @@ let newParser = fn(l) {
         if (!expectPeek("RBRACE")) {
             return null
         }
-        return lit
+        return ast.newHashLiteral(tok, pairs)
     }
 
     let parseFunctionLiteral = fn() {
-        let lit = ast.newFunctionLiteral(currentToken)
+        let tok = currentToken
 
         if (!expectPeek("LPAREN")) {
             return null
         }
-        lit["parameters"] = parseFunctionParameters()
+        let parameters = parseFunctionParameters()
 
         if (!expectPeek("LBRACE")) {
             return null
         }
-        lit["body"] = parseBlockStatement()
-        return lit
+        let body = parseBlockStatement()
+        return ast.newFunctionLiteral(tok, parameters, body)
     }
 
     let parseFunctionParameters = fn() {
@@ -186,8 +180,7 @@ let newParser = fn(l) {
 
     let parseProgram = fn() {
         // puts("---parseProgram")
-        let program = ast.newProgram()
-        let statements = program.statements
+        let statements = []
         while(fn(){currentToken.tokenType != "EOF"}, fn(){
             let stmt = parseStatement()
             if (stmt != null) {
@@ -195,8 +188,7 @@ let newParser = fn(l) {
             }
             nextToken()
         })
-        program["statements"] = statements
-        return program
+        return ast.newProgram(statements)
     }
 
 
@@ -225,36 +217,38 @@ let newParser = fn(l) {
     let parseLetStatement = fn() {
         // puts("---parseLetStatement")
         // puts("currentToken", currentToken)
-        let stmt = ast.newLetStatement(currentToken);
+        let tok = currentToken;
+
         if (!expectPeek("IDENT")) {
             return null
         }
-        stmt["name"] = ast.newIdentifier(currentToken, currentToken.literal)
+        let name = ast.newIdentifier(currentToken, currentToken.literal)
         if (!expectPeek("ASSIGN")) {
             return null
         }
         nextToken()
-        stmt["value"] = parseExpression(Precedence.LOWEST)
+        let value = parseExpression(Precedence.LOWEST)
         
         if (peekTokenIs("SEMICOLON")) {
             nextToken()
         }
+        let stmt = ast.newLetStatement(tok, name, value);
         return stmt
     }
 
     let parseReturnStatement = fn() {
-        let stmt = ast.newReturnStatement(currentToken)
+        let tok = currentToken
         nextToken()
-        stmt["returnValue"] = parseExpression(Precedence.LOWEST)
+        let returnValue = parseExpression(Precedence.LOWEST)
 
         if (peekTokenIs("SEMICOLON")) {
             nextToken()
         }
-        return stmt
+        return ast.newReturnStatement(tok, returnValue)
     }
 
     let parseBlockStatement = fn() {
-        let block = ast.newBlockStatement(currentToken)
+        let tok = currentToken
         let statements = []
         nextToken()
 
@@ -265,21 +259,18 @@ let newParser = fn(l) {
             }
             nextToken()
         })
-        block["statements"] = statements
-        return block
+        return ast.newBlockStatement(tok, statements)
     }
 
     let parseExpressionStatement = fn() {
         // puts("---parseExpressionStatement")
-
-        let stmt = ast.newExpressionStatement(currentToken);
-        stmt["expression"] = parseExpression(Precedence.LOWEST)
+        let tok = currentToken
+        let expression = parseExpression(Precedence.LOWEST)
 
         if (peekTokenIs("SEMICOLON")) {
             nextToken()
         }
-        let exp = stmt.expression
-        return stmt
+        return ast.newExpressionStatement(tok, expression);
     }
     
     let parseExpression = fn(precedence) {
@@ -291,7 +282,6 @@ let newParser = fn(l) {
         }
 
         let leftExp = prefix()
-
         while(fn(){!peekTokenIs("SEMICOLON") && precedence < peekPrecedence()}, fn(){
             let infix = infixParseFns()[TokenType[peekToken.tokenType]]
             if (infix == null) {
@@ -316,11 +306,11 @@ let newParser = fn(l) {
     }
 
     let parseInfixExpression = fn(left) {
-        let expression = ast.newInfixExpression(currentToken, currentToken.literal, left)
+        let tok = currentToken
         let precedence = currentPrecedence()
         nextToken()
-        expression["right"] = parseExpression(precedence)
-        return expression
+        let right = parseExpression(precedence)
+        return ast.newInfixExpression(tok, tok.literal, left, right)
     }
 
     let parseGroupedExpression = fn() {
@@ -334,12 +324,12 @@ let newParser = fn(l) {
     }
 
     let parseIfExpression = fn() {
-        let expression = ast.newIfExpression(currentToken)
+        let tok = currentToken
         if (!expectPeek("LPAREN")) {
             return null;
         }
         nextToken()
-        expression["condition"] = parseExpression(Precedence.LOWEST)
+        let condition = parseExpression(Precedence.LOWEST)
 
         if (!expectPeek("RPAREN")) {
             return null
@@ -347,22 +337,22 @@ let newParser = fn(l) {
         if (!expectPeek("LBRACE")) {
             return null
         }
-        expression["consequence"] = parseBlockStatement()
+        let consequence = parseBlockStatement()
         if (peekTokenIs("ELSE")) {
             nextToken()
             if (!expectPeek("LBRACE")) {
                 return null
             }
-            expression["alternative"] = parseBlockStatement()
+            let alternative = parseBlockStatement()
         }
-        return expression
+        return ast.newIfExpression(tok, condition, consequence, alternative)
         
     }
 
     let parseCallExpression = fn(func) {
-        let exp = ast.newCallExpression(currentToken, func)
-        exp["arguments"] = parseExpressionList("RPAREN")
-        return exp
+        let tok = currentToken
+        let arguments = parseExpressionList("RPAREN")
+        return ast.newCallExpression(tok, func, arguments)
     }
 
     let parseAssignExpression = fn(target) {
@@ -375,12 +365,12 @@ let newParser = fn(l) {
     let parseIndexExpression = fn(left) {
         nextToken()
         let index = parseExpression(Precedence.LOWEST)
-        let exp = ast.newIndexExpression(currentToken, left, index)
+        let tok = currentToken
 
         if (!expectPeek("RBRACKET")) {
             return null
         }
-        return exp
+        return ast.newIndexExpression(tok, left, index)
     }
 
     let parseExpressionList = fn(endTokenType) {

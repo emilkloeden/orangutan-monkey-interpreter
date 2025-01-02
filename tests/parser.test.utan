@@ -3,6 +3,26 @@ let token = use("../src/lang/token.🐵")
 let loops = use("../src/stdlib/loops.🐵")
 let parser = use("../src/lang/parser.🐵")
 let while = loops.while;
+
+let statementsEqual = fn(this, other) {
+    return this == other.toString();
+}
+
+let equalityTestFn = fn(expected, actual) {
+    if (len(expected) != len(actual)) {
+        return false
+    }
+    let i = 0
+    let res = true
+    while(fn(){i < len(expected) && res}, fn(){
+        if (!statementsEqual(expected[i], actual[i])) {
+            res = false
+        }
+        i = i + 1
+    })
+    return res
+}
+
 let runTests = fn(tests, equalityTestFn) {
     // Loop over expected and actual and compile any failures into failures array
     let i = 0
@@ -16,59 +36,60 @@ let runTests = fn(tests, equalityTestFn) {
         let l = lexer.newLexer(input);
         let p = parser.newParser(l)
         let program = p.parseProgram()
-        // puts(program)
-        // if (equalityTestFn(expected, actual)) {
-        //     results = append(results, ".")
-        // } else {
-        //     results = append(results, "F")
-        //     failures = append(failures, {"input": input, "expected": expected, "actual": actual})
-        // }
+        let actual = program.statements
+        
+
+        // puts(program.toString())
+        if (equalityTestFn(expected, actual)) {
+            results = append(results, ".")
+        } else {
+            results = append(results, "F")
+            failures = append(failures, {"input": input, "expected": expected, "actual": actual})
+        }
         
         i = i + 1
 
     })
-
-    // Puts the result string . for pass, F for failure
-    // puts(join(results,""))
-    // // If any failures print expected vs actual
-    // if (len(failures) > 0) {
-    //     let i = 0
-    //     puts(len(failures), "tests FAILED")
-    //     while (fn(){i< len(failures)}, fn() {
-    //         let test = failures[i]
-    //         puts("   ", test.input)
-    //         puts("Expected:
-    //     ",  test.expected)
-    //         puts()
-    //         puts("Actual:
-    //     ", test.actual)
-    //         i = i + 1
-    //     })
-    // } else {
-    // // Otherwise print number of test passed
-    //     puts(len(tests), "tests PASSED")
-    // }
+// Puts the result string . for pass, F for failure
+    puts(join(results,""))
+    // If any failures print expected vs actual
+    if (len(failures) > 0) {
+        let i = 0
+        puts(len(failures), "tests FAILED")
+        while (fn(){i< len(failures)}, fn() {
+            let test = failures[i]
+            puts("   ", test.input)
+            puts("Expected:
+        ",  test.expected)
+            puts("type", type(test.actual))
+            puts("Actual:
+        ", map(test.actual, fn(t) {t.toString()}))
+            i = i + 1
+        })
+    } else {
+    // Otherwise print number of test passed
+        puts(len(tests), "tests PASSED")
+    }
 }
 
-    // {
-        
-    //     "input": "let a = 5; puts(a);", 
-    //     "expected": [
-    //         "(let (a = 5))",
-    //         "puts(a)"
-    //     ]
-    // }
 
 let tests = [
     {
         
-        "input": "let a = 5", 
+        "input": "let a = 5;",
+        "expected": ["let a = 5;"]
+    },
+    {
+        
+        "input": "let a = 5; let c = 3; return a * c;", 
         "expected": [
-            "(let (a = 5))",
-            "puts(a)"
+            "let a = 5;",
+            "let c = 3;",
+            "return a * c;"
         ]
     }
 
 ]
 
-runTests(tests, fn(x) {x})
+
+runTests(tests, equalityTestFn)

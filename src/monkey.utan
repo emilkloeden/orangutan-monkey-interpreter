@@ -18,7 +18,6 @@ let done = false
 let tok = null
 while(fn(){!done}, fn() {
     tok = l.nextToken()
-    puts(tok)
     if (tok != null) {
         toks = append(toks, tok)
     }

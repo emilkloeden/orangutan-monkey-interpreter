@@ -1,6 +1,4 @@
-let newProgram = fn() {
-    let statements = []
-
+let newProgram = fn(statements) {
     let tokenLiteral = fn() {
         if (len(statements) > 0) {
             return statements[0].tokenLiteral()
@@ -9,11 +7,12 @@ let newProgram = fn() {
     }
 
     let toString = fn() {
-        return join(map(statements, fn(s) {s.toString()}),"")
+        // puts("---ast.newProgram.toString()", statements)
+        return join(map(gs(), fn(s) {s.toString()}),"
+")
     }
 
     let gs = fn() {
-        puts(statements)
         return statements
     }
     return {
@@ -40,16 +39,15 @@ let newCommentStatement = fn(token, value) {
     }
 }
 
-let newLetStatement = fn(token) {
-    let name = ""
-    let value = null
+let newLetStatement = fn(token, name, value) {
     
     let toString = fn() {
-        let out = tokenLiteral() + " " + name + " = "
+        let out = tokenLiteral() + " " + name.toString() + " = "
         if (value != null) {
             out = out + value.toString()
         }
         out = out + ";"
+        // puts("LET STATEMENT OUT: ", out, value)
         return out
     }
 
@@ -101,8 +99,8 @@ let newBoolean = fn(token, value) {
     }
 }
 
-let newIntegerLiteral = fn(token) {
-    let value = null;
+let newIntegerLiteral = fn(token, value) {
+    let _value = int(value)
     let toString = fn() {
         if (value == null) {
             return ""
@@ -114,14 +112,10 @@ let newIntegerLiteral = fn(token) {
         token.literal
     }
 
-    let getValue = fn() {
-        int(value)
-    }
-
 
     return {
         "_type": "AST.INTEGERLITERAL",
-        "value": getValue,
+        "value": _value,
         "toString": toString,
         "tokenLiteral": tokenLiteral
     }
@@ -163,9 +157,7 @@ let newNullLiteral = fn(token, value) {
     }
 }
 
-let newArrayLiteral = fn(token) {
-    let parameters = null
-    let body = null
+let newArrayLiteral = fn(token, elements) {
 
     let toString = fn() {
         return "[" + join(map(elements, fn(e) {e.toString()}), ", ") + "]"
@@ -183,8 +175,7 @@ let newArrayLiteral = fn(token) {
     }
 }
 
-let newHashLiteral = fn(token) {
-    let pairs = {}
+let newHashLiteral = fn(token, pairs) {
 
     let getPairs = fn() {
         pairs
@@ -218,7 +209,7 @@ let newHashLiteral = fn(token) {
     }
 }
 
-let newFunctionLiteral = fn(token) {
+let newFunctionLiteral = fn(token, parameters, body) {
     let toString = fn() {
         return "fn (" + join(map(parameters, fn(p) {p.toString()}), ", ") + ") {
     " + body.toString() + "
@@ -237,7 +228,7 @@ let newFunctionLiteral = fn(token) {
     }
 }
 
-let newIfExpression = fn(token) {
+let newIfExpression = fn(token, condition, consequence, alternative) {
     let toString = fn() {
         let out = "if (" + condition.toString() + ") {
     " + consequence.toString() + "    
@@ -264,9 +255,7 @@ let newIfExpression = fn(token) {
     }
 }
 
-let newCallExpression = fn(token, func) {
-    let arguments = []
-
+let newCallExpression = fn(token, func, arguments) {
     let toString = fn() {
         let p = map(arguments, fn(a) {a.toString()})
         return func.toString() + "(" + join(p, ", ") + ")"
@@ -327,11 +316,9 @@ let newIndexExpression = fn(token, left, index) {
     }
 }
 
-let newReturnStatement = fn(token) {
-    let returnValue = null
-
+let newReturnStatement = fn(token, returnValue) {
     let toString = fn() {
-        value
+        return token.literal + " " + returnValue.toString()
     }
 
     let tokenLiteral = fn() {
@@ -346,8 +333,7 @@ let newReturnStatement = fn(token) {
     }
 }
 
-let newExpressionStatement = fn(token) {
-    let expression = null;
+let newExpressionStatement = fn(token, expression) {
     let getExpression = fn() {
         return expression
     }
@@ -372,9 +358,7 @@ let newExpressionStatement = fn(token) {
     }
 }
 
-let newBlockStatement = fn(token) {
-    let statements = []
-
+let newBlockStatement = fn(token, statements) {
     let toString = fn() {
         join(map(statements, fn(stmt) {
             stmt.toString()
@@ -413,11 +397,9 @@ let newPrefixExpression = fn(token, operator) {
     }
 }
 
-let newInfixExpression = fn(token, operator, left) {
-    let right = null;
-
+let newInfixExpression = fn(token, operator, left, right) {
     let toString = fn() {
-        return "(" + left.toString() + operator + right.toString() + ")"
+        return left.toString() + " " +  operator + " " + right.toString() + ";"
     }
 
     let tokenLiteral = fn() {

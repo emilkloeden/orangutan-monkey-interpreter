@@ -54,3 +54,12 @@ let equal = fn(arrOne, arrTwo) {
     })
     res
 }
+
+let concat = fn(old, new) {
+    let i = 0
+    while (fn() {i < len(new)}, fn() {
+        old = append(old, new[i])
+        i = i + 1
+    })
+    old
+}

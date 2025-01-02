@@ -92,7 +92,7 @@ let newLexer = fn(input) {
             if (peekChar() == "=") {
                 readChar()
                 readChar()
-                return newToken("EQUALS", "==")
+                return newToken("EQ", "==")
             }
             return newTokenAndAdvance("ASSIGN", "=")
         }

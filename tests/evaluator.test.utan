@@ -1,0 +1,253 @@
+let lexer = use("../src/lang/lexer.🐵")
+let token = use("../src/lang/token.🐵")
+let arrays = use("../src/stdlib/arrays.🐵")
+let loops = use("../src/stdlib/loops.🐵")
+let parser = use("../src/lang/parser.🐵")
+let evaluator = use("../src/lang/evaluator.🐵")
+let environment = use("../src/lang/environment.🐵")
+let concat = arrays.concat;
+let while = loops.while;
+let evaluate = evaluator.evaluate;
+
+let equalityTestFn = fn(expected, actual) {
+    return actual != null && actual.string == expected.string && actual._type == expected._type
+}
+
+let runTests = fn(tests, equalityTestFn) {
+    // Loop over expected and actual and compile any failures into failures array
+    let i = 0
+    let results = []
+    let failures = []
+    while (fn(){ i < len(tests)}, fn() {
+        let test = tests[i]
+        let input = test.input
+        let expected = test.expected
+        
+        let l = lexer.newLexer(input);
+        let p = parser.newParser(l)
+        let program = p.parseProgram()
+        
+        let env = environment.newEnvironment({});
+        let actual = null
+        if (program.errors) {
+            if (len(program.errors)) {
+                map(program.errors, fn(e) { puts(e) })
+            }
+            failures = append(failures, {"input": input, "expected": expected, "actual": program.errors})
+        } else {
+            let evaluated = evaluate(program, env);
+            if (evaluated._type == "OBJECT.ERROR") {
+                puts("Evaluation Error: ", evaluated)
+            }
+            actual = {
+                "string": evaluated.toString(),
+                "_type": evaluated._type
+            }
+        }
+
+        
+
+        // puts(program.toString())
+        if (equalityTestFn(expected, actual)) {
+            results = append(results, ".")
+        } else {
+            results = append(results, "F")
+            failures = append(failures, {"input": input, "expected": expected, "actual": actual})
+        }
+        
+        i = i + 1
+
+    })
+// Puts the result string . for pass, F for failure
+    puts(join(results,""))
+    // If any failures print expected vs actual
+    if (len(failures) > 0) {
+        let i = 0
+        puts(len(failures), "tests FAILED")
+        while (fn(){i< len(failures)}, fn() {
+            let test = failures[i]
+            puts("   ", test.input)
+            puts("Expected:
+        ",  test.expected)
+            puts("type", type(test.actual))
+            puts("Actual:
+        ", test.actual)
+            i = i + 1
+        })
+    } else {
+    // Otherwise print number of test passed
+        puts(len(tests), "tests PASSED")
+    }
+}
+
+
+let integerTests = [
+    
+    {
+        "input": "5;", 
+        "expected": {
+            "string": "5",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "let a = 5;",
+        "expected": {
+            "string": "null",
+            "_type": "OBJECT.NULL"
+        }
+    },
+    {
+        "input": "2 * (5 + 10)",
+        "expected": {
+            "string": "30",
+            "_type": "OBJECT.INTEGER"
+        }
+    }
+]
+
+let booleanTests = [
+    {
+        "input": "true", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "false", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "1 < 2", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "1 > 2", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "1 < 1", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "1 > 1", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    }
+]
+let booleanEqualityTests = [
+    {
+        "input": "1 == 1", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "1 != 1", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "1 == 2", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "1 != 2", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "true == true", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "false == false", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "true == false", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "true != false", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "false != true", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "(1 < 2) == true", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "(1 < 2) == false", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "(1 > 2) == true", 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": "(1 > 2) == false", 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    }
+]
+
+
+
+
+let tests = booleanEqualityTests
+tests = concat(tests, booleanTests)
+tests = concat(tests, booleanEqualityTests)
+runTests(tests, equalityTestFn)

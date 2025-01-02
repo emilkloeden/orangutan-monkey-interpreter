@@ -37,6 +37,32 @@ let Null = fn() {
     }
 }
 
+let Boolean = fn(value) {
+    let _value = value
+    let toString = fn() {
+        if (_value) {
+            "true"
+        } else {
+            "false"
+        }
+    }
+
+    let hashKey = fn() {
+        let key = "0"
+        if (_value) {
+            key = "1"
+        }
+        HashKey("OBJECT.BOOLEAN", str(_value))
+    }
+
+    return {
+        "_type": "OBJECT.BOOLEAN",
+        "value": _value,
+        "toString": toString,
+        "hashKey": hashKey
+    }
+}
+
 let Integer = fn(value) {
     let _value = int(value)
     let toString = fn() {
@@ -87,10 +113,10 @@ let Array = fn(elements) {
 }
 
 let HashKey = fn(_type, value) {
+    puts("in HashKey func with _type:", type, "and value:", value)
     let toString = fn() {
         _type + ":" + value
     }
-
     // TODO: check if we should return _type or "OBJECT.HASHKEY"
     return {
         "_type": _type,
