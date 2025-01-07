@@ -119,7 +119,7 @@ let newParser = fn(l) {
 
     let parseHashLiteral = fn() {
         let tok = currentToken
-        pairs = {}
+        let pairs = {}
         while(fn(){!peekTokenIs("RBRACE")}, fn() {
             nextToken()
             let key = parseExpression(Precedence.LOWEST)
@@ -129,7 +129,7 @@ let newParser = fn(l) {
             }
             nextToken()
             let value = parseExpression(Precedence.LOWEST)
-
+            // FIXME: Rather than pairs[key.value] we need to mimic the HashPair creation, I think
             pairs[key] = value
             if (!peekTokenIs("RBRACE") && !expectPeek("COMMA")) {
                 return null
@@ -325,6 +325,7 @@ let newParser = fn(l) {
 
     let parseIfExpression = fn() {
         let tok = currentToken
+        let alternative = null
         if (!expectPeek("LPAREN")) {
             return null;
         }
@@ -343,7 +344,7 @@ let newParser = fn(l) {
             if (!expectPeek("LBRACE")) {
                 return null
             }
-            let alternative = parseBlockStatement()
+            alternative = parseBlockStatement()
         }
         return ast.newIfExpression(tok, condition, consequence, alternative)
         

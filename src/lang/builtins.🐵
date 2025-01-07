@@ -3,6 +3,14 @@ let object = use("./object.🐵");
 
 let while = loops.while;
 
+let wrongNumberOfArgs = fn(functionName, actual, expected) {
+    return object.Error("Wrong number of arguments to '" + functionName + "'. Expected=" + str(expected) + ". Received=" + str(received) + ".")
+}
+
+let wrongTypeOfArgument = fn(functionName, actual, expected) {
+    return object.Error("Wrong type of argument to '" + functionName + "'. Expected=" + expected + ". Received=" + received + ".")
+}
+
 let putsFn = fn(env, args) {
     
     let output = []
@@ -11,12 +19,109 @@ let putsFn = fn(env, args) {
         output = append(output, arg.toString())
         i = i + 1
     })
-    puts("before")
     puts(join(output, " "))
-    puts("after")
     return object.Null()
 }
 
+let lenFn = fn(env, args) {
+    if (len(args) != 1) {
+        return wrongNumberOfArgs("len", len(args), 1)
+    }
+    
+    let arg = args[0]
+    
+    if (instanceOf(arg, "OBJECT.HASH")) {
+        return object.Integer(len(arg))
+    }
+    if (instanceOf(arg, "OBJECT.ARRAY")) {
+        return object.Integer(len(arg.elements))
+    }
+    if (instanceOf(arg, "OBJECT.STRING")) {
+        return object.Integer(len(split(arg.value, "")))
+    }
+    return wrongTypeOfArgument("len", arg._type, "OBJECT.ARRAY or OBJECT.HASH or OBJECT.STRING")
+}
+
+let firstFn = fn(env, args) {
+    if (len(args) != 1) {
+        return wrongNumberOfArgs("first", len(args), 1)
+    }
+    
+    let arg = args[0]
+    
+    if (instanceOf(arg, "OBJECT.ARRAY")) {
+        return first(arg.elements)
+    }
+    return wrongTypeOfArgument("first", arg._type, "OBJECT.ARRAY")
+}
+
+let lastFn = fn(env, args) {
+    if (len(args) != 1) {
+        return wrongNumberOfArgs("last", len(args), 1)
+    }
+    
+    let arg = args[0]
+    
+    if (instanceOf(arg, "OBJECT.ARRAY")) {
+        return last(arg.elements)
+    }
+    return wrongTypeOfArgument("last", arg._type, "OBJECT.ARRAY")
+}
+
+let restFn = fn(env, args) {
+    if (len(args) != 1) {
+        return wrongNumberOfArgs("rest", len(args), 1)
+    }
+    
+    let arg = args[0]
+    
+    if (instanceOf(arg, "OBJECT.ARRAY")) {
+        let elements = rest(arg.elements)
+        return object.Array(elements)
+    }
+    return wrongTypeOfArgument("rest", arg._type, "OBJECT.ARRAY")
+
+}
+
+let pushFn = fn(env, args) {
+    if (len(args) != 2) {
+        return wrongNumberOfArgs("push", len(args), 2)
+    }
+    
+    let arg = args[0]
+    let item = args[1]
+    
+    if (instanceOf(arg, "OBJECT.ARRAY")) {
+        let elements = append(arg.elements, item)
+        return object.Array(elements)
+    }
+    return wrongTypeOfArgument("push", arg._type, "OBJECT.ARRAY")
+
+}
+
 let Builtins = {
-    "puts": putsFn
+    "puts": {
+        "_type": "OBJECT.BUILTIN",
+        "invoke": putsFn
+    },
+    "len": {
+        "_type": "OBJECT.BUILTIN",
+        "invoke": lenFn
+    },
+    "first": {
+        "_type": "OBJECT.BUILTIN",
+        "invoke": firstFn
+    },
+    "last": {
+        "_type": "OBJECT.BUILTIN",
+        "invoke": lastFn
+    },
+    "rest": {
+        "_type": "OBJECT.BUILTIN",
+        "invoke": restFn
+    },
+    "push": {
+        "_type": "OBJECT.BUILTIN",
+        "invoke": pushFn
+    }
 }

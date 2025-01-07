@@ -27,7 +27,7 @@ let runTests = fn(tests, equalityTestFn) {
         let p = parser.newParser(l)
         let program = p.parseProgram()
         
-        let env = environment.newEnvironment({});
+        let env = environment.newEnvironment({}, null);
         let actual = null
         if (program.errors) {
             if (len(program.errors)) {
@@ -35,7 +35,8 @@ let runTests = fn(tests, equalityTestFn) {
             }
             failures = append(failures, {"input": input, "expected": expected, "actual": program.errors})
         } else {
-            let evaluated = evaluate(program, env);
+            let e = evaluator.Evaluator(program)
+            let evaluated = e.evaluate(program, env);
             if (evaluated._type == "OBJECT.ERROR") {
                 puts("Evaluation Error: ", evaluated)
             }
@@ -68,8 +69,8 @@ let runTests = fn(tests, equalityTestFn) {
             let test = failures[i]
             puts("   ", test.input)
             puts("Expected:
-        ",  test.expected)
-            puts("type", type(test.actual))
+        ", test.expected)
+            // puts("type", type(test.actual))
             puts("Actual:
         ", test.actual)
             i = i + 1
@@ -80,6 +81,43 @@ let runTests = fn(tests, equalityTestFn) {
     }
 }
 
+let stringTests = [
+    {
+        "input": '"hello" + " " + "world!"', 
+        "expected": { 
+            "string": '"hello world!"',
+            "_type": "OBJECT.STRING"
+        }
+    },
+    {
+        "input": '"hello" == "hello"', 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": '"hello" != "hello"', 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": '"hello" != "world"', 
+        "expected": { 
+            "string": "true",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    },
+    {
+        "input": '"hello" == "world"', 
+        "expected": { 
+            "string": "false",
+            "_type": "OBJECT.BOOLEAN"
+        }
+    }
+]
 
 let integerTests = [
     
@@ -244,10 +282,279 @@ let booleanEqualityTests = [
     }
 ]
 
+let ifElseExpressionTests = [
+    {
+        "input": "if (true) { 10; }", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "if (false) { 10 }", 
+        "expected": { 
+            "string": "null",
+            "_type": "OBJECT.NULL"
+        }
+    },
+    {
+        "input": "if (1) { 10; }", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "if (1 < 2) { 10 }", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "if (1 > 2) { 10 }", 
+        "expected": { 
+            "string": "null",
+            "_type": "OBJECT.NULL"
+        }
+    },
+    {
+        "input": "if (1 > 2) { 10 } else { 20 }", 
+        "expected": { 
+            "string": "20",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "if (1 < 2) { 10 } else { 20 }", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    }
+]
+
+let returnValueTests = [
+    {
+        "input": "return 10;", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "return 10; 9;", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "return 2 * 5; 9;", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "9; return 2 * 5; 9;", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "if (10 > 1) { return 10; }", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "if (10 > 1) { if (10 > 1) { return 10; } return 1; }", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "let f = fn(x) { return x; x + 10; }; f(10)", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "let f = fn(x) { let result = x + 10; return result; return 10; }; f(10)", 
+        "expected": { 
+            "string": "20",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "let identity = fn(x) { x }; identity(10)", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": "fn(x) { x; }(10)", 
+        "expected": { 
+            "string": "10",
+            "_type": "OBJECT.INTEGER"
+        }
+    }
+]
+
+let environmentTests = [
+    {
+        "input": "let first = 10; let second = 10; let third = 10; let ourFunction = fn(first) {  let second = 20;  first + second + third;}; ourFunction(20) + first + second;", 
+        "expected": { 
+            "string": "70",
+            "_type": "OBJECT.INTEGER"
+        }
+    }
+]
+
+let functionTests = [
+    {
+        "input": "fn(x) { x * 2 }(10)",
+        "expected": { 
+            "string": "20",
+            "_type": "OBJECT.INTEGER"
+        }
+    }
+]
+
+let closureTests = [
+    {
+        "input": "let newAdder = fn(x) { fn(y) { x + y }; }; let addTwo = newAdder(2); addTwo(2);",
+        "expected": { 
+            "string": "4",
+            "_type": "OBJECT.INTEGER"
+        }
+    }
+]
+
+let hashLiteralTests = [
+    {
+        "input": '{ "2": 2, "3": 3}',
+        "expected": { 
+            "string": '{
+    "2": 2,
+    "3": 3
+}',
+            "_type": "OBJECT.HASH"
+        }
+    },
+    {
+        "input": 'let a = {"b":"a", 1: 1}; a',
+        "expected": {
+            "string": 
+'{
+    "b": "a",
+    1: 1
+}'
+    , "_type": "OBJECT.HASH"
+        }
+    }
+]
+
+let builtinTests = [
+    {
+        "input": "len([1,2,3,4])",
+        "expected": { 
+            "string": "4",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": 'len("1234")',
+        "expected": { 
+            "string": "4",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": 'first([4,3,2,1])',
+        "expected": { 
+            "string": "4",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": 'rest([4,3,2,1])',
+        "expected": { 
+            "string": "[
+    3,
+    2,
+    1
+]",
+            "_type": "OBJECT.ARRAY"
+        }
+    },
+    {
+        "input": 'last([4,3,2,1])',
+        "expected": { 
+            "string": "1",
+            "_type": "OBJECT.INTEGER"
+        }
+    },
+    {
+        "input": 'push([4,3,2,1], 5)',
+        "expected": { 
+            "string": "[
+    4,
+    3,
+    2,
+    1,
+    5
+]",
+            "_type": "OBJECT.ARRAY"
+        }
+    }
+    
+]
 
 
 
-let tests = booleanEqualityTests
+let arrayTests = [
+    {
+        "input": '[1,2,
+    3
+]',
+        "expected": { 
+            "string": "[
+    1,
+    2,
+    3
+]",
+            "_type": "OBJECT.ARRAY"
+        }
+    },
+    {
+        "input": '[1,2,
+    3
+][1]',
+        "expected": { 
+            "string": "2",
+            "_type": "OBJECT.INTEGER"
+        }
+    }
+]
+
+let tests = stringTests
+tests = concat(tests, integerTests)
 tests = concat(tests, booleanTests)
 tests = concat(tests, booleanEqualityTests)
+tests = concat(tests, ifElseExpressionTests)
+tests = concat(tests, returnValueTests)
+tests = concat(tests, environmentTests)
+tests = concat(tests, functionTests)
+tests = concat(tests, closureTests)
+tests = concat(tests, hashLiteralTests)
+tests = concat(tests, builtinTests)
+tests = concat(tests, arrayTests)
+
 runTests(tests, equalityTestFn)

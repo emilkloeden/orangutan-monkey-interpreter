@@ -1,358 +1,705 @@
 let ast = use("./ast.🐵");
 let object = use("./object.🐵");
 let builtins = use("./builtins.🐵")
+let environment = use("./environment.🐵")
 let loops = use("../stdlib/loops.🐵")
 
 let instanceOf = ast.instanceOf;
 let Builtins = builtins.Builtins;
+let newEnvironment = environment.newEnvironment;
 let while = loops.while;
 
-let evaluate = fn(node, env) {
-    if (node == null) {
-        return newError("node is null: " + node);
+let Frame = fn(functionName) {
+    if (functionName == null) {
+        functionName = "<anonymous>"
     }
-    if (instanceOf(node, "AST.PROGRAM")) {
-        return evaluateProgram(node, env)
+    return {
+        "_type": "STACK.FRAME",
+        "functionName": functionName
     }
-    if (instanceOf(node, "AST.EXPRESSIONSTATEMENT")) {
-        return evaluate(node.expression, env)
-    }
-    if (instanceOf(node, "AST.BLOCKSTATEMENT")) {
-        return evaluateBlockStatement(node, env)
-    }
-    if (instanceOf(node, "AST.RETURNSTATEMENT")) {
-        return evaluateReturnStatement(node, env)
-    }
-    if (instanceOf(node, "AST.LETSTATEMENT")) {
-        return evaluateLetStatement(node, env)
-    }
-    if (instanceOf(node, "AST.BOOLEAN")) {
-        return object.Boolean(node.value)
-    }
-    if (instanceOf(node, "AST.INTEGERLITERAL")) {
-        return object.Integer(node.value)
-    }
-    if (instanceOf(node, "AST.STRINGLITERAL")) {
-        return object.String(node.value)
-    }
-    if (instanceOf(node, "AST.NULLLITERAL")) {
-        return object.Null(node.value)
-    }
-    if (instanceOf(node, "AST.ARRAYLITERAL")) {
-        return evaluateArrayLiteral(node, env)
-    }
-    if (instanceOf(node, "AST.FUNCTIONLITERAL")) {
-        return evaluateFunctionLiteral(node, env)
-    }
-    if (instanceOf(node, "AST.IDENTIFIER")) {
-        return evaluateIdentifier(node, env)
-    }
-    if (instanceOf(node, "AST.ASSIGNEXPRESSION")) {
-        return evaluateAssignment(
-            node.target,
-            node.value,
-            env
-        )
-    }
-    if (instanceOf(node, "AST.PREFIXEXPRESSION")) {
-        let right = evaluate(node.right, env)
-        if (isError(right)) {
-            return right
-        }
-        return evaluatePrefixExpression(node.operator, right)
-    }
-    if (instanceOf(node, "AST.INFIXEXPRESSION")) {
-        let left = evaluate(node.left, env);
-        if (isError(left)) {
-            return left;
-        }
-        let right = evaluate(node.right, env);
-        if (isError(right)) {
-            return right;
-        }
-        return evaluateInfixExpression(node.operator, left, right, env)
-    }
-    puts("node before")
-    puts(node)
-    puts("node after")
-    return newError("Asked to evaluate unknown object: " + node)
 }
 
-let evaluateProgram = fn(node, env) {
-    let result = null;
-    // puts("evaluate program start: result:", result)
-    let i = 0
-    let done = false
-    let statements = node.statements
-    while(fn() {i < len(statements) && !done}, fn() {
-        let statement = statements[i]
-        result = evaluate(statement, env);
-        if (instanceOf(result, "OBJECT.RETURNVALUE")) {
-            result = result.value;
-            done = true;
-        } else {
-            if (instanceOf(result, "OBJECT.ERROR")) {
+let Stack = fn() {
+    let _items = []
+    let push = fn (item) {
+        setItems(prepend(getItems(), item))
+    }
+    let getItems = fn() {
+        return _items;
+    }
+    let setItems = fn(items) {
+        _items = items
+    }
+    let pop = fn () {
+        let items = getItems()
+        if (len(items) == 0) {
+            // TODO: Confirm if should be null or Object.Null()
+            return Object.Null()
+        }
+        let res = first(items)
+        setItems(rest(items))
+        return res
+    }
+    let toString = fn() {
+        puts("in Stack.toString()")
+        let items = getItems()
+        let i = 0
+        while(fn(){i < len(items)}, fn() {
+            puts("i:", i, "type:", type(items[i]), "/", len(items))
+            i = i + 1
+        })
+        join(map(items, fn(frame) {
+            puts("frame._type", frame._type, "frame:", frame)
+            return "    at " + frame.functionName
+        }), "
+")
+    }
+    return {
+        "_type": "STACK",
+        "push": push,
+        "pop": pop,
+        "toString": toString
+    }
+}
+
+let Evaluator = fn (ast) {
+    
+    // writeFile("ast.monkey", join(map(ast.statements, fn(s) {s.toString()}),"
+    
+    // "))
+    let frames = Stack()
+
+    let evaluate = fn(node, env) {
+        // puts("evaluating node:", node)
+        if (node == null) {
+            return newError("node is null: " + node);
+        }
+        if (instanceOf(node, "AST.PROGRAM")) {
+            return evaluateProgram(node, env)
+        }
+        if (instanceOf(node, "AST.EXPRESSIONSTATEMENT")) {
+            return evaluate(node.expression, env)
+        }
+        if (instanceOf(node, "AST.BLOCKSTATEMENT")) {
+            return evaluateBlockStatement(node, env)
+        }
+        if (instanceOf(node, "AST.RETURNSTATEMENT")) {
+            return evaluateReturnStatement(node, env)
+        }
+        if (instanceOf(node, "AST.LETSTATEMENT")) {
+            return evaluateLetStatement(node, env)
+        }
+        if (instanceOf(node, "AST.BOOLEAN")) {
+            return object.Boolean(node.value)
+        }
+        if (instanceOf(node, "AST.INTEGERLITERAL")) {
+            return object.Integer(node.value)
+        }
+        if (instanceOf(node, "AST.STRINGLITERAL")) {
+            return object.String(node.value)
+        }
+        if (instanceOf(node, "AST.NULLLITERAL")) {
+            return object.Null(node.value)
+        }
+        if (instanceOf(node, "AST.ARRAYLITERAL")) {
+            return evaluateArrayLiteral(node, env)
+        }
+        if (instanceOf(node, "AST.HASHLITERAL")) {
+            return evaluateHashLiteral(node, env)
+        }
+        if (instanceOf(node, "AST.FUNCTIONLITERAL")) {
+            return evaluateFunctionLiteral(node, env)
+        }
+        if (instanceOf(node, "AST.IDENTIFIER")) {
+            return evaluateIdentifier(node, env)
+        }
+        if (instanceOf(node, "AST.IFEXPRESSION")) {
+            return evaluateIfExpression(node, env)
+        }
+        if (instanceOf(node, "AST.CALLEXPRESSION")) {
+            return evaluateCallExpression(node, env)
+        }
+        if (instanceOf(node, "AST.ASSIGNEXPRESSION")) {
+            return evaluateAssignment(
+                node.target,
+                node.value,
+                env
+            )
+        }
+        if (instanceOf(node, "AST.PREFIXEXPRESSION")) {
+            let right = evaluate(node.right, env)
+            if (isError(right)) {
+                return right
+            }
+            return evaluatePrefixExpression(node.operator, right)
+        }
+        if (instanceOf(node, "AST.INFIXEXPRESSION")) {
+            let left = evaluate(node.left, env);
+            if (isError(left)) {
+                return left;
+            }
+            let right = evaluate(node.right, env);
+            if (isError(right)) {
+                return right;
+            }
+            return evaluateInfixExpression(node.operator, left, right, env)
+        }
+        if (instanceOf(node, "AST.INDEXEXPRESSION")) {
+            let left = evaluate(node.left, env);
+            if (isError(left)) {
+                return left;
+            }
+            let index = evaluate(node.index, env);
+            if (isError(index)) {
+                return index;
+            }
+            return evaluateIndexExpression(left, index)
+        }
+
+    // IMPLEMENT INDEXEXPRESSION - check if any others are missing
+
+        puts("
+        
+        ASKED TO EVALUATE unknown OBJECT
+        
+        ", node, "
+        
+        
+        
+        ")
+        return newError("Asked to evaluate unknown object: " + node)
+    }
+
+    let evaluateProgram = fn(node, env) {
+        let result = null;
+        // puts("evaluate program start: result:", result)
+        let i = 0
+        let done = false
+        let statements = node.statements
+        while(fn() {i < len(statements) && !done}, fn() {
+            let statement = statements[i]
+            result = evaluate(statement, env);
+            if (instanceOf(result, "OBJECT.RETURNVALUE")) {
+                result = result.value;
                 done = true;
+            } else {
+                if (instanceOf(result, "OBJECT.ERROR")) {
+                    done = true;
+                }
+            }
+            i = i + 1;
+        })
+        // puts("evaluate program end: result:", result)
+
+        return result;
+    }
+
+    let evaluatePrefixExpression = fn(operator, right) {
+        // puts("evaluateInfixExpression called with right:", right)
+        if (right == null) {
+            return newError("evaluatePrefixExpression has a null right object");
+        }
+        if (operator == "!") {
+            return evaluateBangOperatorExpression(right);
+        } 
+        if (operator == "-") {
+            return evaluateMinusPrefixOperatorExpression(right);
+        } 
+        return newError("unknown operator: " + operator + right._type); 
+    }
+
+    let evaluateBangOperatorExpression = fn(right) {
+        if (isTruthy(right)) {
+            return object.Boolean(false)
+        }
+        return object.Boolean(true)
+    }
+
+    let evaluateMinusPrefixOperatorExpression = fn(right) {
+        if(!instanceOf(right, "OBJECT.INTEGER")) {
+            return newError("unknown operator: -" + right._type)
+        }
+        return object.Integer(-right.value)
+    }
+
+    let evaluateInfixExpression = fn(operator, left, right, env) {
+        // puts("evaluateInfixExpression called with operator:", operator,  "left:", left, "right:", right)
+        if (left == null || right == null) {
+            return newError("Issue with infixExpression")
+        }
+        if (instanceOf(left, "OBJECT.INTEGER") && instanceOf(right, "OBJECT.INTEGER")) {
+            return evaluateIntegerInfixExpression(operator, left, right)
+        } 
+        if (instanceOf(left, "OBJECT.BOOLEAN") && instanceOf(right, "OBJECT.BOOLEAN")) {
+            return evaluateBooleanInfixExpression(operator, left, right)
+        }
+        if (instanceOf(left, "OBJECT.STRING") && instanceOf(right, "OBJECT.STRING")) {
+            return evaluateStringInfixExpression(operator, left, right)
+        }
+        else {
+            if (left._type != right._type) {
+                return newError(
+                    "type mismatch: " + left._type + operator + right._type
+                );
             }
         }
-        i = i + 1;
-    })
-    // puts("evaluate program end: result:", result)
-
-    return result;
-}
-
-let evaluatePrefixExpression = fn(operator, right) {
-    // puts("evaluateInfixExpression called with right:", right)
-    if (right == null) {
-        return newError("evaluatePrefixExpression has a null right object");
+        return newError(
+            "unknown operator XXX: "+ left._type + operator + right._type
+        );
     }
-    if (operator == "!") {
-        return evaluateBangOperatorExpression(right);
-    } 
-    if (operator == "-") {
-        return evaluateMinusPrefixOperatorExpression(right);
-    } 
-    return newError("unknown operator: " + operator + right._type); 
-}
 
-let evaluateBangOperatorExpression = fn(right) {
-    if (isTruthy(right)) {
-        return object.Boolean(false)
-    }
-    return object.Boolean(true)
-}
-
-let evaluateMinusPrefixOperatorExpression = fn(right) {
-    if(!instanceOf(right, "OBJECT.INTEGER")) {
-        return newError("unknown operator: -" + right._type)
-    }
-    return object.Integer(-right.value)
-}
-
-let evaluateInfixExpression = fn(operator, left, right, env) {
-    // puts("evaluateInfixExpression called with operator:", operator,  "left:", left, "right:", right)
-    if (left == null || right == null) {
-        return newError("Issue with infixExpression")
-    }
-    if (instanceOf(left, "OBJECT.INTEGER") && instanceOf(right, "OBJECT.INTEGER")) {
-        return evaluateIntegerInfixExpression(operator, left, right)
-    } 
-    if (instanceOf(left, "OBJECT.BOOLEAN") && instanceOf(right, "OBJECT.BOOLEAN")) {
-        return evaluateBooleanInfixExpression(operator, left, right)
-    }
-    else {
-        if (left._type != right._type) {
-            return newError(
-                "type mismatch: " + left._type + operator + right._type
-            );
+    let evaluateIntegerInfixExpression = fn(operator, left, right) {
+        let l = left.value;
+        let r = right.value;
+        if (operator == "+") {
+            return object.Integer(l + r)
+        } 
+        if (operator == "-") {
+            return object.Integer(l - r)
+        } 
+        if (operator == "*") {
+            return object.Integer(l * r)
+        } 
+        if (operator == "/") {
+            return object.Integer(int(l / r))
         }
-  }
-  return newError(
-    "unknown operator XXX: "+ left._type + operator + right._type
-  );
-}
-
-let evaluateIntegerInfixExpression = fn(operator, left, right) {
-    let l = left.value;
-    let r = right.value;
-    if (operator == "+") {
-        return object.Integer(l + r)
-    } 
-    if (operator == "-") {
-        return object.Integer(l - r)
-    } 
-    if (operator == "*") {
-        return object.Integer(l * r)
-    } 
-    if (operator == "/") {
-        return object.Integer(int(l / r))
-    }
-    if (operator == "<") {
-        return object.Boolean(l < r)
-    }
-    if (operator == "<=") {
-        return object.Boolean(l <= r)
-    }
-    if (operator == ">") {
-        return object.Boolean(l > r)
-    }
-    if (operator == ">=") {
-        return object.Boolean(l >= r)
-    }
-    if (operator == "==") {
-        return object.Boolean(l == r)
-    }
-    if (operator == "!=") {
-        return object.Boolean(l != r)
-    }
-  return newError(
-    "unknown operator in evaluateIntegerInfixExpression: "+ left._type + operator + right._type
-  );
-}
-
-let evaluateBooleanInfixExpression = fn(operator, left, right) {
-    let l = left.value;
-    let r = right.value;
-    // puts("---evaluateBooleanInfixExpression with l:", l, "operator:", operator, "r:", r)
-    
-    if (operator == "==") {
-        return object.Boolean(l == r)
-    }
-    if (operator == "!=") {
-        return object.Boolean(l != r)
-    }
-    if (operator == "||") {
-        return object.Boolean(l || r)
-    }
-    if (operator == "&&") {
-        return object.Boolean(l && r)
-    }
+        if (operator == "<") {
+            return object.Boolean(l < r)
+        }
+        if (operator == "<=") {
+            return object.Boolean(l <= r)
+        }
+        if (operator == ">") {
+            return object.Boolean(l > r)
+        }
+        if (operator == ">=") {
+            return object.Boolean(l >= r)
+        }
+        if (operator == "==") {
+            return object.Boolean(l == r)
+        }
+        if (operator == "!=") {
+            return object.Boolean(l != r)
+        }
     return newError(
-    "unknown operator in evaluateBooleanInfixExpression: " + left._type + operator + right._type
-  );
-}
-
-let evaluateIdentifier = fn(node, env) {
-    let value = env.get(node.value)
-    if (value != null) {
-        return value.value
+        "unknown operator in evaluateIntegerInfixExpression: "+ left._type + operator + right._type
+    );
     }
-    let builtin = Builtins[node.value]
-    if (builtin != null) {
-        return builtin
-    }
-    return newError("identifier was not found: " + node.value)
-}
 
-let evaluateAssignment = fn(left, right, env) {
-    if (instanceOf(left, "AST.IDENTIFIER")) {
-        let got = env.get(left.value)
-        if (got == null) {
-            return newError("identifier not found: " + left.value)
+    let evaluateBooleanInfixExpression = fn(operator, left, right) {
+        let l = left.value;
+        let r = right.value;
+        // puts("---evaluateBooleanInfixExpression with l:", l, "operator:", operator, "r:", r)
+        
+        if (operator == "==") {
+            return object.Boolean(l == r)
         }
-        let originalEnv = got.env
+        if (operator == "!=") {
+            return object.Boolean(l != r)
+        }
+        if (operator == "||") {
+            return object.Boolean(l || r)
+        }
+        if (operator == "&&") {
+            return object.Boolean(l && r)
+        }
+        return newError(
+        "unknown operator in evaluateBooleanInfixExpression: " + left._type + operator + right._type
+    );
+    }
+
+    let evaluateStringInfixExpression = fn(operator, left, right) {
+        let l = left.value;
+        let r = right.value;
+        // puts("---evaluateStringInfixExpression with l:", l, "operator:", operator, "r:", r)
+        
+        if (operator == "+") {
+            return object.String(l + r)
+        }
+        if (operator == "==") {
+            return object.Boolean(l == r)
+        }
+
+        if (operator == "!=") {
+            return object.Boolean(l != r)
+        }
+        return newError(
+            "unknown operator in evaluateStringInfixExpression: " + left._type + operator + right._type
+        );
+    }
+
+    let evaluateIndexExpression = fn(left, index) {
+        if (left == null) {
+            return newError("left object is null: " + left._type)
+        }
+        if (instanceOf(left, "OBJECT.ARRAY") && instanceOf(index, "OBJECT.INTEGER")) {
+            return evaluateArrayIndexExpression(left, index)
+        }
+        if (instanceOf(left, "OBJECT.HASH")) {
+            return evaluateHashIndexExpression(left, index)
+        }
+        return newError("Unable to access index, either left is not an Array or Hash, or index is not supported. Left: " + left._type + " Index: " + index._type)
+    }
+
+    let evaluateArrayIndexExpression = fn(array, index) {
+        let idx = index.value
+        let max = len(array.elements) -1
+        if (idx < 0 || idx > max) {
+            return object.Null()
+        }
+        return array.elements[idx]
+    }
+
+    let evaluateHashIndexExpression = fn(hashObj, index) {
+        if (!isHashable(index)) {
+            return newError("Type is unusable as a hash key: " + index._type)
+        }
+        if (!(instanceOf(hashObj, "OBJECT.HASH"))) {
+            return newError("Hash Index evaluation attempted with object that is not a hash: "+ hashObj._type)
+        }
+        let hashKeyString = index.hashKey().toString()
+        let pair = hashObj.pairs[hashKeyString]
+        if (pair == null) {
+            return object.Null()
+        }
+        let value = pair.value
+        if (value == null) {
+            // TODO: Confirm if should return null or object.Null()
+            return null
+        }
+        return value
+    }
+
+    let evaluateIdentifier = fn(node, env) {
+        let value = env.get(node.value)
+        if (value != null) {
+            return value.value
+        }
+        let builtin = Builtins[node.value]
+        if (builtin != null) {
+            return builtin
+        }
+        return wrapError(newError("identifier was not found: " + node.value), frames)
+    }
+
+    let evaluateAssignment = fn(left, right, env) {
+        if (instanceOf(left, "AST.IDENTIFIER")) {
+            let got = env.get(left.value)
+            if (got == null) {
+                puts("----evaluateAssignment, left:", left)
+                return newError("identifier not found: " + left.value)
+            }
+            let originalEnv = got.env
+            let value = evaluate(right, env)
+            if (isError(value)) {
+                return value
+            }
+            return originalEnv.set(left.value, value)
+        }
+        if (instanceOf(left, "AST.INDEXEXPRESSION")) {
+            let indexed = evaluate(left.left, env)
+            if (isError(indexed)) {
+                return indexed
+            }
+            let index = evaluate(left.index, env)
+            if (isError(index)) {
+                return index
+            }
+            if (instanceOf(indexed, "OBJECT.ARRAY") && instanceOf(index, "OBJECT.INTEGER")) {
+                return evaluateArrayAssignment(indexed, index, right, env)
+            }
+            if (instanceOf(indexed, "OBJECT.HASH")) {
+                return evaluateHashAssignment(indexed, index, right, env)
+            }
+            return newError("index operator not supported: " + left)
+        }
+        return newError("Cannot assign to something that is not an identifier or an index expression. left: " + left.toString() + " right: " + right.toString())
+    }
+
+    let evaluateArrayAssignment = fn(array, index, right, env) {
+        let unpacked = unpackArrayIndex(array, index)
+        let arrayObj = unpacked[0]
+        let idx = unpacked[1]
+        let max = unpacked[2]
+        if (idx < 0 || idx > max) {
+            return newError("index out of range")
+        }
         let value = evaluate(right, env)
         if (isError(value)) {
             return value
         }
-        return originalEnv.set(left.value, value)
-    }
-    if (instanceOf(left, "AST.INDEXEXPRESSION")) {
-        let indexed = evaluate(left.left, env)
-        if (isError(indexed)) {
-            return indexed
-        }
-        let index = evaluate(left.index, env)
-        if (isError(index)) {
-            return index
-        }
-        if (instanceOf(indexed, "OBJECT.ARRAY") && instanceOf(index, "OBJECT.INTEGER")) {
-            return evaluateArrayAssignment(indexed, index, right, env)
-        }
-        if (instanceOf(indexed, "OBJECT.HASH")) {
-            return evaluateHashAssignment(indexed, index, right, env)
-        }
-        return newError("index operator not supported: " + left)
-    }
-    return newError("Cannot assign to something that is not an identifier or an index expression. left: " + left.toString() + " right: " + right.toString())
-}
-
-let evaluateArrayAssignment = fn(array, index, right, env) {
-    let unpacked = unpackArrayIndex(array, index)
-    let arrayObj = unpacked[0]
-    let idx = unpacked[1]
-    let max = unpacked[2]
-    if (idx < 0 || idx > max) {
-        return newError("index out of range")
-    }
-    let value = evaluate(right, env)
-    if (isError(value)) {
+        arrayObj["elements"][idx] = value
         return value
     }
-    arrayObj["elements"][idx] = value
-    return value
-}
 
-let unpackArrayIndex = fn(array, index) {
-    return [
-        array,
-        index.value,
-        len(array.elements) - 1
-    ]
-}
-
-let evaluateHashAssignment = fn(hash, index, right, env) {
-    if (!isHashable(index)) {
-        return newError("Unusable as hash key: " + index)
+    let unpackArrayIndex = fn(array, index) {
+        return [
+            array,
+            index.value,
+            len(array.elements) - 1
+        ]
     }
-    let hashKeyString = index.hashKey().toString()
-    let value = evaluate(right, env)
-    if (isError(value)) {
+
+    let evaluateHashAssignment = fn(hash, index, right, env) {
+        if (!isHashable(index)) {
+            return newError("Unusable as hash key: " + index)
+        }
+        let hashKeyString = index.hashKey().toString()
+        let value = evaluate(right, env)
+        if (isError(value)) {
+            return value
+        }
+        if (value == null) {
+            return newError("RHS of hash assignment expression evaluate to host null");
+        }
+        let hashPair = object.HashPair(index, value)
+        if (!hash.pairs) {
+            hash["pairs"] = {}
+        }
+        hash["pairs"]["hashKeyString"] = hashPair
+
         return value
     }
-    if (value == null) {
-        return newError("RHS of hash assignment expression evaluate to host null");
-    }
-    let hashPair = object.HashPair(index, value)
-    if (!hash.pairs) {
-        hash["pairs"] = {}
-    }
-    hash["pairs"]["hashKeyString"] = hashPair
 
-    return value
-}
-
-let evaluateLetStatement = fn(node, env) {
-    let value = evaluate(node.value, env)
-    if (isError(value)) {
-        return value
+    let evaluateLetStatement = fn(node, env) {
+        let value = evaluate(node.value, env)
+        if (isError(value)) {
+            return value
+        }
+        env.set(node.name.value, value)
+        // TODO: This doesn't return in the original, so I think it falls through
+        // or just doesn't return, null seems correct. After coming back to this
+        // I think object.Null() is preferable
+        
+        return object.Null();
     }
-    env.set(node.name.value, value)
-    // TODO: This doesn't return in the original, so I think it falls through
-    // or just doesn't return, null seems correct. After coming back to this
-    // I think object.Null() is preferable
-    
-    return object.Null();
-}
 
-let evaluateReturnStatement = fn(node, env) {
-    let value = evaluate(node.returnValue, env)
-    if (isError(value)) {
-        return value
+    let evaluateReturnStatement = fn(node, env) {
+        let value = evaluate(node.returnValue, env)
+        if (isError(value)) {
+            return value
+        }
+        return object.ReturnValue(value)
     }
-    return object.ReturnValue(value)
-}
 
-let evaluateBlockStatement = fn(node, env) {
-    let result = null
-    let i = 0
-    let done = false
-    while(fn(){i < len(node.statements && !done)}, fn(){
-        result = evaluate(node.statements[i], env)
-        if (result != null) {
-            if (instanceOf(result, "OBJECT.RETURNVALUE") || instanceOf(result, "OBJECT.ERROR")) {
-                done = true
+    let evaluateBlockStatement = fn(node, env) {
+        let result = null
+        let i = 0
+        let done = false
+        while(fn(){i < len(node.statements) && !done}, fn(){
+            result = evaluate(node.statements[i], env)
+            if (result != null) {
+                if (instanceOf(result, "OBJECT.RETURNVALUE") || instanceOf(result, "OBJECT.ERROR")) {
+                    done = true
+                }
+            }
+            i = i + 1
+        })
+        return result
+    }
+
+    let evaluateArrayLiteral = fn(node, env) {
+        let elements = evaluateExpressions(node.elements, env)
+        if (len(elements) == 1 && isError(elements[0])) {
+            return elements[0]
+        }
+        return object.Array(elements)
+    }
+
+    let evaluateHashLiteral = fn(node, env) {
+        let outPairs = {}
+        let pairs = entries(node.pairs)
+        let i = 0
+        while(fn(){i < len(pairs)}, fn() {
+            let pair = pairs[i]
+            let keyNode = pair[0]
+            let valueNode = pair[1]
+            let key = evaluate(keyNode, env)
+            if (isError(key)) {
+                return key;
+            }
+            if (!isHashable(key)) {
+                return newError("unusable as hashkey: " + key._type)
+            }
+            let value = evaluate(valueNode, env)
+            if (isError(value)) {
+                return value;
+            }
+            let hashed = key.hashKey().toString()
+            let hashPair = object.HashPair(key, value)
+            outPairs[hashed] = hashPair
+
+            i = i + 1
+        })
+        return object.Hash(outPairs)
+    }
+
+    let evaluateFunctionLiteral = fn(node, env) {
+        let params = node.parameters;
+        let body = node.body;
+        return object.Function(params, body, env)
+    }
+
+    let evaluateIfExpression = fn(expression, env) {
+        // puts("-----mn: evaluateIfExpression", expression)
+        let condition = evaluate(expression.condition, env)
+        if (isError(condition)) {
+            return condition
+        }
+        if (isTruthy(condition)) {
+            // puts("----mn: if condition, consequence:", expression.consequence.toString())
+            return evaluate(expression.consequence, env)
+        }
+        // This was expression.alternative !== undefined
+        // But in orangutan/monkey null is falsey so this should work
+        if (expression.alternative != null) {
+            return evaluate(expression.alternative, env)
+        }
+        return object.Null()
+    }
+
+    let evaluateCallExpression = fn(node, env) {
+        let functionName = "<unknown function>"
+        if (node["fn"]) {
+            functionName = node["fn"].value
+        }
+        frames.push(Frame(functionName))
+        let func = evaluate(node["fn"], env)
+        if (isError(func)) {
+            let err = wrapError(func, frames)
+            frames.pop()
+            return err
+        }
+        let args = evaluateExpressions(node.arguments, env)
+        if (len(args) == 1 && isError(args[0])) {
+            let error = args[0]
+            let err = wrapError(error, frames)
+            frames.pop()
+            return err
+        }
+        let result = applyFunction(node["fn"], args, env)
+        frames.pop()
+        return result
+    }
+
+    let evaluateExpressions = fn(expressions, env) {
+        let result = []
+        if (expressions == null) {
+            return result
+        }
+        let i = 0
+        while (fn(){i < len(expressions)}, fn() {
+            let expression = expressions[i]
+            let evaluated = evaluate(expression, env)
+            if (isError(evaluated)) {
+                return [evaluated]
+            }
+            result = append(result, evaluated)
+            i = i + 1
+        })
+        return result
+    }
+
+    let applyFunction = fn(func, args, env) {
+        // TODO: Shouldn't this be handled in the evaluate() method?
+        if (instanceOf(func, "AST.IDENTIFIER")) {
+            let func = evaluateIdentifier(func, env)
+            // puts("-----IDENT lookup:", env.get(func.value))
+            // puts("-----BUILTIN lookup:", Builtins[func.value])
+            // let userDefined = env.get(func.value)
+            // if (userDefined != null) {
+            //     puts("LOOKING UP IDENT", userDefined)
+            //     func = userDefined.value
+            // }
+            // if (userDefined == null) {
+            //     puts("LOOKING FOR BUILTIN")
+            //     func = Builtins[func.value]
+            //     puts("GOT BUILTIN", func)
+            // } 
+            // if (func == null) {
+            //     puts("NO USER VARIABLE OR BUILTIN")
+            //     return newError("Identifier not found: " + node.value)
+            // }
+
+        }
+        // TODO: Shouldn't this be handled in the evaluate() method? It's here now for anonymous function calls
+        if (instanceOf(func, "AST.FUNCTIONLITERAL")) {
+            func = evaluateFunctionLiteral(func, env)
+            // puts("---applyFunction: was AST.FUNCTIONLITERAL, now func=", func)
+        }
+        if (instanceOf(func, "OBJECT.FUNCTION")) {
+            let extendedEnv = extendFunctionEnv(func, args)
+            if (isError(extendedEnv)) {
+                return extendedEnv;
+            }
+            let evaluated = evaluate(func.body, extendedEnv)
+            // TODO: Confirm if this is should use Object.Null() in either location
+            if (evaluated == null) {
+                return evaluated
+            }
+            return unwrapReturnValue(evaluated)
+        } else {
+            if (instanceOf(func, "OBJECT.BUILTIN")) {
+                return func.invoke(env, args)
             }
         }
-        i = i + 1
-    })
-    return result
-}
-
-let evaluateArrayLiteral = fn(node, env) {
-    let elements = evaluateExpressions(node.elements, env)
-    if (len(elements) == 1 && isError(elements[0])) {
-        return elements[0]
+        return wrapError(newError("MONKEY EVALUATION ERROR: applyFunction, node.fn is not a Function or Builtin. Got: " + func._type), frames);
     }
-    return object.Array(elements)
+
+    let extendFunctionEnv = fn(func, args) {
+        let env = newEnvironment({}, func.env)
+        let i = 0;
+        let length = 0
+        if (func.parameters) {
+            length = len(func.parameters)
+        }
+        while(fn(){i < length}, fn() {
+            let param = func.parameters[i]
+            let arg = args[i]
+            if (param.value == null) {
+                return wrapError(newError("No value for parameter: '" + param.toString() + "' provided."), frames)
+            }
+            env.set(param.value, arg)
+            
+            i = i + 1
+        })
+        return env;
+    }
+
+    let unwrapReturnValue = fn(obj) {
+        if (instanceOf(obj, "OBJECT.RETURNVALUE")) {
+            return obj.value
+        }
+        return obj
+    }
+
+    return {
+        "evaluate": evaluate,
+        "frames": frames,
+        "dumpAst": fn() { puts(ast.toString())}
+    }
 }
 
-let evaluateFunctionLiteral = fn(node, env) {
-    let params = node.parameters;
-    let body = node.body;
-    return object.Function(params, body, env)
+let wrapError = fn(error, stack) {
+    puts("---Made it to wrapError", type(error), error)
+    let toString = error.toString();
+    puts("toString 1")
+    toString = toString + "
+    
+MONKEY EVALUATION STACK TRACE:
+"
+    puts("toString 2")
+    let stackString = stack.toString()
+    puts("toString 2a")
+    toString = toString + stack.toString()
+    puts("toString 3")
+    puts("---made it to toString", toString)
+    return {
+        "_type": "OBJECT.ERROR",
+        "toString": toString
+    }
 }
+
 
 let isError = fn(obj) {
   if (obj != null) {
@@ -361,18 +708,40 @@ let isError = fn(obj) {
   return false;
 }
 
+let isTruthy = fn(obj) {
+  if (obj == null) {
+    return false;
+  }
+  if (instanceOf(obj, "OBJECT.NULL")) {
+    return false;
+  }
+  if (isTrue(obj)) {
+    return true;
+  }
+  if (isFalse(obj)) {
+    return false;
+  }
+  return true;
+};
+
 let isTrue = fn(obj) {
-    instanceOf(obj, "OBJECT.BOOLEAN") && obj.value == true
+    if (instanceOf(obj, "OBJECT.BOOLEAN")) {
+        return obj.value == true
+    }
+    return false;
 }
 
 let isFalse = fn(obj) {
-    instanceOf(obj, "OBJECT.BOOLEAN") && obj.value == false
+    if (instanceOf(obj, "OBJECT.BOOLEAN")) {
+        return obj.value == false
+    } 
+    return false
 }
 
 let isHashable = fn(obj) {
     // NOTE: this is && typeof obj.hashKey === function in orangutan
     // So this will overreport
-    puts("isHashable with obj:", obj)
+//    puts("isHashable with obj:", obj)
    obj != null && obj.hashKey != null
 }
 

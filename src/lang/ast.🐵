@@ -131,14 +131,18 @@ let newStringLiteral = fn(token, value) {
         token.literal
     }
 
+    let hashKey = fn() {
+        return HashKey(_type, value)
+    }
+
     return {
         "_type": "AST.STRINGLITERAL",
         "toString": toString,
         "tokenLiteral": tokenLiteral,
-        "value": value
+        "value": value,
+        "hashKey": hashKey
     }
 }
-
 
 let newNullLiteral = fn(token, value) {
     let toString = fn() {
@@ -176,16 +180,11 @@ let newArrayLiteral = fn(token, elements) {
 }
 
 let newHashLiteral = fn(token, pairs) {
-
-    let getPairs = fn() {
-        pairs
-    }
-
     let toString = fn() {
         let ps = map(entries(pairs), fn(pair) {
             let key = pair[0]
             let value = pair[1]
-            return key.toString() + ": " + value.toString()
+            return str(key) + ": " + value.toString()
         })
         let startStr = "{
     ";
@@ -200,10 +199,9 @@ let newHashLiteral = fn(token, pairs) {
         return token.literal
     }
 
-    // TODO: Check for issue with pairs assignment and retrieval here
     return {
         "_type": "AST.HASHLITERAL",
-        "pairs": getPairs(),
+        "pairs": pairs,
         "tokenLiteral": tokenLiteral,
         "toString": toString
     }
@@ -221,8 +219,9 @@ let newFunctionLiteral = fn(token, parameters, body) {
     }
 
     return {
-        "_type": "AST.HASHLITERAL",
+        "_type": "AST.FUNCTIONLITERAL",
         "parameters": parameters,
+        "body": body,
         "tokenLiteral": tokenLiteral,
         "toString": toString
     }
