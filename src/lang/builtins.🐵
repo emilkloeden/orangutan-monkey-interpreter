@@ -16,6 +16,7 @@ let putsFn = fn(env, args) {
     let output = []
     let i = 0
     while(fn(){i < len(args)}, fn() {
+        let arg = args[i]
         output = append(output, arg.toString())
         i = i + 1
     })

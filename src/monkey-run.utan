@@ -8,30 +8,11 @@ let evaluator = use("./lang/evaluator.🐵")
 let while = loops.while;
 let TokenType = token.TokenType;
 let Evaluator = evaluator.Evaluator;
-let input = readFile("../tests/basic.test.utan"); // Ideally we'd have a better way to load input
 
-puts("---INPUT---")
-puts(input)
+let input = readFile(last(args()))
+
 let env = environment.newEnvironment({}, null);
 let l = lexer.newLexer(input);
-// let toks = []
-// let done = false
-// let tok = null
-// while(fn(){!done}, fn() {
-//     tok = l.nextToken()
-//     if (tok != null) {
-//         toks = append(toks, tok)
-//     }
-//     if (TokenType[tok.tokenType] == TokenType.EOF) {
-//         done = true
-//     }
-// })
-
-// writeFile("tokens.txt", join(map(filter(toks, fn(t) {t!=null}), fn(t) {t.toString()}), "
-// "))
-
-let l = lexer.newLexer(input);
-// puts(l.tokens())
 let p = parser.newParser(l);
 
 let program = p.parseProgram();
@@ -45,7 +26,6 @@ else {
     let e = Evaluator(program)
     let evaluated = e.evaluate(program, env);
     if (evaluated != null) {
-        puts("---OUTPUT---")
         puts(evaluated.toString())
     }
 }

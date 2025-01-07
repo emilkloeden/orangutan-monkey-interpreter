@@ -7,12 +7,11 @@ let newProgram = fn(statements) {
     }
 
     let toString = fn() {
-        // puts("---ast.newProgram.toString()", statements)
-        return join(map(gs(), fn(s) {s.toString()}),"
+        return join(map(_getStatments(), fn(s) {s.toString()}),"
 ")
     }
 
-    let gs = fn() {
+    let _getStatments = fn() {
         return statements
     }
     return {

@@ -1,0 +1,42 @@
+let loops = use("./stdlib/loops.🐵")
+let lexer = use("./lang/lexer.🐵")
+let token = use("./lang/token.🐵")
+let parser = use("./lang/parser.🐵")
+let environment = use("./lang/environment.🐵")
+let evaluator = use("./lang/evaluator.🐵")
+
+let while = loops.while;
+let TokenType = token.TokenType;
+let Evaluator = evaluator.Evaluator;
+// let input = readFile("../tests/basic.test.utan"); // Ideally we'd have a better way to load input
+
+let env = environment.newEnvironment({}, null);
+let input = ""
+while (fn() {input != ":exit"}, fn() {
+    input = prompt()
+
+
+    puts("---INPUT---")
+    puts(input)
+    let l = lexer.newLexer(input);
+    
+    let p = parser.newParser(l);
+
+    let program = p.parseProgram();
+    if (program.errors) {
+        if (len(program.errors)) {
+            map(program.errors, fn(e) { puts(e) })
+        }
+        puts(program);
+    } 
+    else {
+        let e = Evaluator(program)
+        let evaluated = e.evaluate(program, env);
+        if (evaluated != null) {
+            puts("---OUTPUT---")
+            puts(evaluated.toString())
+        }
+    }
+})
+
+

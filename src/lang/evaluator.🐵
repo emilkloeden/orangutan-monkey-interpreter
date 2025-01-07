@@ -41,7 +41,6 @@ let Stack = fn() {
         return res
     }
     let toString = fn() {
-        puts("in Stack.toString()")
         let items = getItems()
         let i = 0
         while(fn(){i < len(items)}, fn() {
@@ -88,6 +87,9 @@ let Evaluator = fn (ast) {
         }
         if (instanceOf(node, "AST.LETSTATEMENT")) {
             return evaluateLetStatement(node, env)
+        }
+        if (instanceOf(node, "AST.COMMENTSTATEMENT")) {
+            return evaluateCommentStatement(node, env)
         }
         if (instanceOf(node, "AST.BOOLEAN")) {
             return object.Boolean(node.value)
@@ -155,8 +157,6 @@ let Evaluator = fn (ast) {
             }
             return evaluateIndexExpression(left, index)
         }
-
-    // IMPLEMENT INDEXEXPRESSION - check if any others are missing
 
         puts("
         
@@ -262,6 +262,9 @@ let Evaluator = fn (ast) {
         } 
         if (operator == "/") {
             return object.Integer(int(l / r))
+        } 
+        if (operator == "%") {
+            return object.Integer(l % r)
         }
         if (operator == "<") {
             return object.Boolean(l < r)
@@ -474,6 +477,10 @@ let Evaluator = fn (ast) {
         return object.Null();
     }
 
+    let evaluateCommentStatement = fn(node, env) {
+        return object.Null();
+    }
+
     let evaluateReturnStatement = fn(node, env) {
         let value = evaluate(node.returnValue, env)
         if (isError(value)) {
@@ -681,19 +688,19 @@ let Evaluator = fn (ast) {
 }
 
 let wrapError = fn(error, stack) {
-    puts("---Made it to wrapError", type(error), error)
+    // puts("---Made it to wrapError", type(error), error)
     let toString = error.toString();
-    puts("toString 1")
+    // puts("toString 1")
     toString = toString + "
     
 MONKEY EVALUATION STACK TRACE:
 "
-    puts("toString 2")
+    // puts("toString 2")
     let stackString = stack.toString()
-    puts("toString 2a")
+    // puts("toString 2a")
     toString = toString + stack.toString()
-    puts("toString 3")
-    puts("---made it to toString", toString)
+    // puts("toString 3")
+    // puts("---made it to toString", toString)
     return {
         "_type": "OBJECT.ERROR",
         "toString": toString

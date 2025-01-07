@@ -211,7 +211,7 @@ let newParser = fn(l) {
     }
 
     let parseCommentStatement = fn() {
-        return ast.newComment(currentToken, currentToken.literal)
+        return ast.newCommentStatement(currentToken, currentToken.literal)
     }
 
     let parseLetStatement = fn() {
