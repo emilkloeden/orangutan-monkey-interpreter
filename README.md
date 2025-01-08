@@ -1,10 +1,20 @@
 # Orangutan Monkey Interpreter
 
-The Orangutan Monkey Interpreter is an interpreter Thorsten Ball's [Monkey language](https://monkeylang.org/) written in the [Orangutan programming language](https://github.com/emilkloeden/orangutan) itself an implementation and extension of Monkey.
+![Orangutan Monkey Interpreter logo](./assets/logo.png)
+
+The Orangutan Monkey Interpreter is an interpreter that executes code written in Thorsten Ball's [Monkey language](https://monkeylang.org/) written in the [Orangutan programming language](https://github.com/emilkloeden/orangutan) itself an implementation and extension of Monkey.
 
 ## Features
 
-- TBA
+A "feature-complete"^ implementation of [Monkey](https://monkeylang.org/) written in a superset of monkey. Repository includes two scripts to execute:
+
+- single Monkey scripts:
+  `orangutan run .\src\monkey-run.utan my-script.monkey`
+
+- multiple Monkey programs via a Read-Evaluate-Print-Loop (REPL):
+  `orangutan run .\src\monkey-repl.utan`
+
+^ well at least it tries to be, there are likely bugs at this early stage.
 
 ## Installation
 
@@ -19,11 +29,11 @@ The Orangutan Monkey Interpreter is an interpreter Thorsten Ball's [Monkey langu
 
 ## Usage
 
-(For now) Run the script by editing the contents of 'tests/math.utan' then using the `orangutan` command:
+Open a Monkey REPL to execute Monkey programs:
+`orangutan run .\src\monkey-repl.utan`
 
-```bash
-orangutan run src/monkey.utan
-```
+Or run a single script to execute Monkey scripts:
+`orangutan run .\src\monkey-run.utan my-script.monkey`
 
 ## Contributing
 
