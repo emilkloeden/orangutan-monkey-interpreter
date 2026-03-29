@@ -5,10 +5,10 @@ let while = fn(condition, action) {
     }
 }
 
-let unless = fn(condtion, action) {
+let unless = fn(condition, action) {
     if (!condition()) {
         action()
-        unless(conditon, action)
+        unless(condition, action)
     }
 }
 
